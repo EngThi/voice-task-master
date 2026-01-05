@@ -1,0 +1,12 @@
+{
+  "name": "voice-task-master",
+  "version": "1.0.0",
+  "description": "Voice controlled task manager",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
