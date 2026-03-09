@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Voice Task Master</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+      <div class="title">Voice Task Master</div>
+      <div class="subtitle">Talk. Ship. Repeat.</div>
+    </header>
+
+    <section class="panel">
+      <div class="row">
+        <button id="btnVoice" class="btn primary">Start voice</button>
+        <button id="btnStandup" class="btn">Voice standup</button>
+      </div>
+
+      <div class="row">
+        <input id="taskText" class="input" placeholder="Type a task or use voice…" />
+      </div>
+
+      <div class="row">
+        <input id="taskDue" class="input small" type="date" />
+        <button id="btnAdd" class="btn primary">Add</button>
+      </div>
+
+      <div class="row">
+        <button id="btnExport" class="btn">Export JSON</button>
+        <button id="btnClearDone" class="btn danger">Clear done</button>
+      </div>
+
+      <div class="hint" id="hint"></div>
+    </section>
+
+    <section class="list">
+      <div class="listHeader">
+        <div>Tasks</div>
+        <div id="count"></div>
+      </div>
+      <div id="tasks"></div>
+    </section>
+
+    <footer>
+      <div class="kbd">
+        <span>Enter</span> add • <span>Ctrl</span>+<span>K</span> focus
+      </div>
+    </footer>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "Voice Task Master",
+  "version": "1.0",
+  "description": "Uma extensão para gerenciar tarefas por voz.",
+  "permissions": ["storage", "activeTab"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon128.png"
+  },
+  "options_page": "options.html",
+  "icons": {
+    "128": "icon128.png"
+  }
+}

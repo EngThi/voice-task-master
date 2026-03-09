@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Voice Task Master • Options</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body style="width:auto;max-width:720px;margin:0 auto">
+    <header>
+      <div class="title">Options</div>
+      <div class="subtitle">Keep secrets out of public repos.</div>
+    </header>
+
+    <section class="panel">
+      <div class="hint">
+        Tip: For real AI features, prefer a local backend (FastAPI) so your API key never lives in the extension.
+      </div>
+
+      <div class="row">
+        <input id="backendUrl" class="input" placeholder="Local backend URL (e.g. http://localhost:8787)" />
+        <button id="save" class="btn primary">Save</button>
+      </div>
+
+      <div class="hint" id="status"></div>
+    </section>
+
+    <script src="options.js"></script>
+  </body>
+</html>
