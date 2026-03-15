@@ -33,49 +33,42 @@ body::after {
 }
 
 body {
+  width: 450px;
+  min-height: 550px;
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-x: hidden;
+  position: relative;
   animation: flicker 0.15s infinite;
-  /* ... resto do body ... */
 }
 
-
-header{
-  padding:14px 14px 6px 14px;
+header {
+  padding: 20px 20px 10px 20px;
   background: linear-gradient(to bottom, #001a11, transparent);
+  border-bottom: 1px solid var(--border);
 }
-.title{font-size:16px;font-weight:700;letter-spacing:1px; text-shadow: var(--glow);}
-.subtitle{font-size:10px;color:var(--muted);margin-top:4px; opacity: 0.8; text-transform: uppercase}
 
-.panel{
-  margin:10px 14px;
-  padding:12px;
-  background:var(--panel);
-  border:1px solid var(--border);
-  border-radius:4px;
+.panel {
+  margin: 15px 20px;
+  padding: 16px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
   box-shadow: var(--glow);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.input{
-  width:100%;
-  padding:10px 10px;
-  border-radius:2px;
-  border:1px solid var(--border);
-  background:rgba(0, 255, 157, 0.05);
-  color:var(--text);
-  outline:none;
-}
-
-.btn{
-  padding:10px 10px;
-  border-radius:2px;
-  border:1px solid var(--border);
-  background:rgba(0, 255, 157, 0.05);
-  color:var(--text);
-  cursor:pointer;
-  transition:all .2s ease;
-  user-select:none;
-  text-transform: uppercase;
-  font-size: 10px;
-  font-weight: bold;
+.btn {
+  width: 100%;
+  padding: 12px;
+  text-align: center;
+  /* ... resto do btn ... */
 }
 .btn:hover{background: rgba(0, 255, 157, 0.15); border-color: var(--accent); box-shadow: var(--glow);}
 .btn:active{transform:scale(0.98)}

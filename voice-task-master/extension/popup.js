@@ -257,15 +257,23 @@ async function toggleVoice() {
   recognition.onerror = (e) => {
     listening = false;
     btnVoice.classList.remove("recording");
-    btnVoice.textContent = "🎙️ Gravar Voz";
-    setHint(`Erro: ${e?.error || "desconhecido"}`);
+    btnVoice.textContent = "🎙️ Initialize Voice";
+    
+    if (e.error === 'not-allowed') {
+      setHint("Access Denied. Opening config tab...");
+      setTimeout(() => {
+        window.open(window.location.href + "?auth=1");
+      }, 1000);
+    } else {
+      setHint(`Uplink Error: ${e.error}`);
+    }
   };
 
   recognition.onend = () => {
     if (listening) {
       listening = false;
       btnVoice.classList.remove("recording");
-      btnVoice.textContent = "🎙️ Gravar Voz";
+      btnVoice.textContent = "🎙️ Initialize Voice";
     }
   };
 
@@ -274,8 +282,8 @@ async function toggleVoice() {
   } catch (e) {
     listening = false;
     btnVoice.classList.remove("recording");
-    btnVoice.textContent = "🎙️ Gravar Voz";
-    setHint("Sem acesso ao microfone.");
+    btnVoice.textContent = "🎙️ Initialize Voice";
+    setHint("Permission required.");
   }
 }
 
