@@ -1,83 +1,107 @@
 :root{
-  --bg:#0b0f14;
-  --panel:#0f1621;
-  --text:#e6edf3;
-  --muted:#9aa4af;
-  --accent:#66e3ff;
-  --danger:#ff5c7a;
-  --border:rgba(255,255,255,.08);
+  --bg:#05070a;
+  --panel:#0a0e14;
+  --text:#00ff9d;
+  --muted:#4ecca3;
+  --accent:#00ff9d;
+  --danger:#ff003c;
+  --border:rgba(0, 255, 157, 0.15);
+  --glow: 0 0 10px rgba(0, 255, 157, 0.3);
 }
 
-*{box-sizing:border-box;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace}
-body{
-  width:360px;
-  margin:0;
-  background:var(--bg);
-  color:var(--text);
+*{box-sizing:border-box;font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace}
+body::after {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+              linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  background-size: 100% 2px, 3px 100%;
+  pointer-events: none;
+  z-index: 9999;
 }
+
+@keyframes flicker {
+  0% { opacity: 0.97; }
+  5% { opacity: 0.95; }
+  10% { opacity: 0.9; }
+  15% { opacity: 0.95; }
+  25% { opacity: 0.95; }
+  30% { opacity: 1; }
+  100% { opacity: 0.98; }
+}
+
+body {
+  animation: flicker 0.15s infinite;
+  /* ... resto do body ... */
+}
+
 
 header{
   padding:14px 14px 6px 14px;
+  background: linear-gradient(to bottom, #001a11, transparent);
 }
-.title{font-size:16px;font-weight:700;letter-spacing:.2px}
-.subtitle{font-size:12px;color:var(--muted);margin-top:4px}
+.title{font-size:16px;font-weight:700;letter-spacing:1px; text-shadow: var(--glow);}
+.subtitle{font-size:10px;color:var(--muted);margin-top:4px; opacity: 0.8; text-transform: uppercase}
 
 .panel{
   margin:10px 14px;
   padding:12px;
   background:var(--panel);
   border:1px solid var(--border);
-  border-radius:12px;
+  border-radius:4px;
+  box-shadow: var(--glow);
 }
-
-.row{display:flex;gap:8px;margin-top:8px}
-.row:first-child{margin-top:0}
 
 .input{
   width:100%;
   padding:10px 10px;
-  border-radius:10px;
+  border-radius:2px;
   border:1px solid var(--border);
-  background:rgba(255,255,255,.03);
+  background:rgba(0, 255, 157, 0.05);
   color:var(--text);
   outline:none;
 }
-.input.small{width:140px}
 
 .btn{
   padding:10px 10px;
-  border-radius:10px;
+  border-radius:2px;
   border:1px solid var(--border);
-  background:rgba(255,255,255,.03);
+  background:rgba(0, 255, 157, 0.05);
   color:var(--text);
   cursor:pointer;
-  transition:transform .05s ease;
+  transition:all .2s ease;
   user-select:none;
+  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: bold;
 }
-.btn:active{transform:translateY(1px)}
-.btn.primary{border-color:rgba(102,227,255,.25); box-shadow:0 0 0 1px rgba(102,227,255,.12) inset}
-.btn.danger{border-color:rgba(255,92,122,.25); color:#ffd6de}
+.btn:hover{background: rgba(0, 255, 157, 0.15); border-color: var(--accent); box-shadow: var(--glow);}
+.btn:active{transform:scale(0.98)}
+.btn.primary{border-color:var(--accent); color: var(--accent)}
+.btn.danger{border-color:var(--danger); color:var(--danger)}
 
-.hint{margin-top:10px;font-size:12px;color:var(--muted);min-height:16px}
-
-.list{padding:4px 14px 12px 14px}
-.listHeader{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:12px;margin:6px 0}
 .task{
-  display:flex;
-  align-items:flex-start;
-  gap:10px;
-  padding:10px;
-  border:1px solid var(--border);
-  border-radius:12px;
-  margin-bottom:8px;
-  background:rgba(255,255,255,.02);
+  border-left: 2px solid var(--accent);
+  border-radius: 0 4px 4px 0;
+  background:rgba(0, 255, 157, 0.02);
 }
-.task .main{flex:1}
-.task .text{font-size:13px;line-height:1.3}
-.task .meta{margin-top:6px;font-size:11px;color:var(--muted)}
-.task .del{background:transparent;border:0;color:var(--muted);cursor:pointer;padding:0 4px}
-.task.done{opacity:.65}
-.task.done .text{text-decoration:line-through}
+.task:hover{background: rgba(0, 255, 157, 0.05);}
+
+
+.btn.recording {
+  background: rgba(255, 92, 122, 0.1);
+  border-color: rgba(255, 92, 122, 0.4);
+  color: #ff5c7a;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 92, 122, 0.4); }
+  70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(255, 92, 122, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 92, 122, 0); }
+}
 
 footer{padding:0 14px 14px 14px}
 .kbd{font-size:11px;color:var(--muted)}

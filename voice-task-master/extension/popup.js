@@ -179,8 +179,36 @@ function getRecognition() {
   return r;
 }
 
-function parseVoiceCommand(raw) {
-  const t = (raw || "").trim();
+async function parseVoiceCommand(raw) {
+  const t = (raw || "").trim().toLowerCase();
+  
+  if (t.includes("clear all") || t.includes("burn everything")) {
+    await saveTasks([]);
+    render([]);
+    speak("System purged. All tasks destroyed.");
+    setHint("System Purged 🔥");
+    return { text: null };
+  }
+
+  if (t.startsWith("remove ") || t.startsWith("delete ")) {
+    const term = t.replace(/^(remove|delete)\s+/i, "").trim();
+    const all = await loadTasks();
+    const next = all.filter(x => !x.text.toLowerCase().includes(term));
+    await saveTasks(next);
+    render(next);
+    speak(`Task ${term} deleted from database.`);
+    setHint(`Deleted: "${term}"`);
+    return { text: null };
+  }
+
+  if (t.includes("status report") || t.includes("daily briefing")) {
+    const tasks = await loadTasks();
+    const briefing = makeStandup(tasks);
+    speak(briefing);
+    setHint("Reporting Status...");
+    return { text: null };
+  }
+
   const m = t.match(/^add\s+/i);
   const body = m ? t.replace(/^add\s+/i, "") : t;
 
@@ -194,42 +222,50 @@ function parseVoiceCommand(raw) {
 async function toggleVoice() {
   if (listening) {
     listening = false;
-    btnVoice.textContent = "Start voice";
-    setHint("Voice stopped.");
+    btnVoice.classList.remove("recording");
+    btnVoice.textContent = "🎙️ Initialize Voice";
+    setHint("Input Disconnected.");
     try { recognition?.stop(); } catch (_) {}
     return;
   }
 
   recognition = getRecognition();
   if (!recognition) {
-    setHint("SpeechRecognition not supported in this browser.");
+    setHint("Voice Engine offline.");
     return;
   }
 
   listening = true;
-  btnVoice.textContent = "Listening…";
-  setHint("Say: “add buy milk”");
+  btnVoice.classList.add("recording");
+  btnVoice.textContent = "🛑 Uplink Active...";
+  setHint("Try: 'add build the next unicorn'");
 
   recognition.onresult = async (ev) => {
     const spoken = ev?.results?.[0]?.[0]?.transcript || "";
-    const { text, due } = parseVoiceCommand(spoken);
-    if (text) await addTask(text, due);
-    btnVoice.textContent = "Start voice";
+    setHint(`Uplink: "${spoken}"`);
+    const { text, due } = await parseVoiceCommand(spoken);
+    if (text) {
+      await addTask(text, due);
+      speak(`Task added to the grid: ${text}`);
+    }
+    
+    btnVoice.classList.remove("recording");
+    btnVoice.textContent = "🎙️ Initialize Voice";
     listening = false;
-    setHint(`Heard: "${spoken}"`);
   };
 
   recognition.onerror = (e) => {
     listening = false;
-    btnVoice.textContent = "Start voice";
-    setHint(`Voice error: ${e?.error || "unknown"}`);
+    btnVoice.classList.remove("recording");
+    btnVoice.textContent = "🎙️ Gravar Voz";
+    setHint(`Erro: ${e?.error || "desconhecido"}`);
   };
 
   recognition.onend = () => {
     if (listening) {
       listening = false;
-      btnVoice.textContent = "Start voice";
-      setHint("Voice ended.");
+      btnVoice.classList.remove("recording");
+      btnVoice.textContent = "🎙️ Gravar Voz";
     }
   };
 
@@ -237,8 +273,9 @@ async function toggleVoice() {
     recognition.start();
   } catch (e) {
     listening = false;
-    btnVoice.textContent = "Start voice";
-    setHint("Could not start mic (permission?).");
+    btnVoice.classList.remove("recording");
+    btnVoice.textContent = "🎙️ Gravar Voz";
+    setHint("Sem acesso ao microfone.");
   }
 }
 

@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Voice Task Master",
-  "version": "1.0",
-  "description": "Uma extensão para gerenciar tarefas por voz.",
+  "name": "VOICE-TASK-MASTER (VTM)",
+  "version": "1.0.1",
+  "description": "Voice-first task manager for high-intensity developers. Ship your code with the power of speech.",
+  "author": "EngThi // Hacker",
   "permissions": ["storage", "activeTab"],
   "action": {
     "default_popup": "popup.html",
@@ -11,5 +12,6 @@
   "options_page": "options.html",
   "icons": {
     "128": "icon128.png"
-  }
+  },
+  "offline_enabled": true
 }

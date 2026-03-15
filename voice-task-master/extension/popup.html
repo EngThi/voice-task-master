@@ -8,31 +8,31 @@
   </head>
   <body>
     <header>
-      <div class="title">Voice Task Master</div>
-      <div class="subtitle">Talk. Ship. Repeat.</div>
+      <div class="title">VOICE-TASK-MASTER v1.0</div>
+      <div class="subtitle">Neural Uplink Connected // Status: Online</div>
     </header>
 
     <section class="panel">
       <div class="row">
-        <button id="btnVoice" class="btn primary">Start voice</button>
-        <button id="btnStandup" class="btn">Voice standup</button>
+        <button id="btnVoice" class="btn primary">🎙️ Initialize Voice</button>
+        <button id="btnStandup" class="btn">🧠 Status Briefing</button>
       </div>
 
       <div class="row">
-        <input id="taskText" class="input" placeholder="Type a task or use voice…" />
+        <input id="taskText" class="input" placeholder="Type command or speak..." />
       </div>
 
       <div class="row">
         <input id="taskDue" class="input small" type="date" />
-        <button id="btnAdd" class="btn primary">Add</button>
+        <button id="btnAdd" class="btn primary">Insert Task</button>
       </div>
 
       <div class="row">
-        <button id="btnExport" class="btn">Export JSON</button>
-        <button id="btnClearDone" class="btn danger">Clear done</button>
+        <button id="btnExport" class="btn">Data Export</button>
+        <button id="btnClearDone" class="btn danger">Purge Done</button>
       </div>
 
-      <div class="hint" id="hint"></div>
+      <div class="hint" id="hint">System initialized. Waiting for command...</div>
     </section>
 
     <section class="list">
