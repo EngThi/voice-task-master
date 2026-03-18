@@ -1,4 +1,5 @@
 const STORAGE_KEY = "vtm_tasks_v1";
+const BACKUP_KEY = "vtm_backup_v1";
 
 const el = (id) => document.getElementById(id);
 const tasksEl = el("tasks");
@@ -33,6 +34,8 @@ async function loadTasks() {
 
 async function saveTasks(tasks) {
   await chrome.storage.local.set({ [STORAGE_KEY]: tasks });
+  const snap = { ts: Date.now(), data: tasks.slice(0, 5) };
+  await chrome.storage.local.set({ [BACKUP_KEY]: snap });
 }
 
 function setHint(msg) {
