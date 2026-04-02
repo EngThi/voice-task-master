@@ -98,29 +98,41 @@ function render(tasks) {
     wrap.appendChild(cb);
     wrap.appendChild(main);
     wrap.appendChild(del);
-    tasksEl.appendChild(wrap);
-  }
-}
+    let hintTimer = null;
+    function setHint(msg) {
+      hintEl.textContent = msg || "";
+      clearTimeout(hintTimer);
+      if (msg) hintTimer = setTimeout(() => hintEl.textContent = "", 3000);
+    }
 
-async function addTask(text, due) {
-  const clean = (text || "").trim();
-  if (!clean) return;
+    async function addTask(text, due) {
+      const clean = (text || "").trim();
 
-  const tasks = await loadTasks();
-  tasks.unshift({
-    id: uid(),
-    text: clean,
-    due: due || "",
-    done: false,
-    createdAt: Date.now()
-  });
-  await saveTasks(tasks);
-  render(tasks);
+      if (!clean) {
+        setHint("⚠️ Type something first.");
+        taskText.classList.add("flash");
+        setTimeout(() => taskText.classList.remove("flash"), 400);
+        return;
+      }
 
-  taskText.value = "";
-  taskDue.value = "";
-  setHint("Added.");
-}
+      const tasks = await loadTasks();
+      tasks.unshift({
+        id: uid(),
+        text: clean,
+        due: due || "",
+        done: false,
+        createdAt: Date.now()
+      });
+      await saveTasks(tasks);
+      render(tasks);
+
+      taskText.value = "";
+      taskDue.value = "";
+      setHint("Data Injected.");
+
+      taskText.classList.add("flash");
+      setTimeout(() => taskText.classList.remove("flash"), 400);
+    }
 
 async function clearDone() {
   const tasks = await loadTasks();
@@ -317,3 +329,5 @@ taskText.addEventListener("keydown", (e) => {
   render(tasks);
   taskText.focus();
 })();
+
+// 2026-04-02 20:22:08.465790 - Activity Pulse: Logic Update

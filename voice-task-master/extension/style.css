@@ -106,3 +106,6 @@ footer{padding:0 14px 14px 14px}
   margin:0 2px;
   background:rgba(255,255,255,.02);
 }
+
+@keyframes flash { 0%,100%{border-color:var(--accent)} 50%{border-color:#39ff14} }
+.flash { animation: flash 0.4s ease; }
