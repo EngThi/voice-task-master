@@ -17,7 +17,7 @@ A voice-first productivity extension designed for the Hack Club Flavortown commu
 
 ## Official Release
 Check the latest releases for the official `.crx` installer:
-https://github.com/EngThi/voice-task-master/releases
+https://github.com/EngThi/voice-task-master/releases/tag/v1.3.1
 
 ---
 Developed on Android via Termux. [Flavortown Project #4322]
