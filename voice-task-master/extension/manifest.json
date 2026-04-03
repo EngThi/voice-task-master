@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "VOICE-TASK-MASTER (VTM)",
-  "version": "1.0.1",
-  "description": "Voice-first task manager for high-intensity developers. Ship your code with the power of speech.",
+  "version": "1.1.0",
+  "description": "Voice-first task manager for high-intensity developers. Integrated Ship Mode for Flavortown.",
   "author": "EngThi // Hacker",
   "permissions": ["storage", "activeTab"],
   "action": {
@@ -19,5 +19,11 @@
     "48": "icon48.png",
     "128": "icon128.png"
   },
+  "content_scripts": [
+    {
+      "matches": ["*://flavortown.hackclub.com/*"],
+      "js": ["content.js"]
+    }
+  ],
   "offline_enabled": true
 }

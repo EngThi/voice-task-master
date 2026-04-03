@@ -64,11 +64,67 @@ header {
   gap: 12px;
 }
 
+/* Priority Glows */
+.task.p-critical { border-left-color: var(--danger); box-shadow: 0 0 15px rgba(255, 0, 60, 0.2); animation: pulse-red 2s infinite; }
+.task.p-ship { border-left-color: #ffcc00; box-shadow: 0 0 15px rgba(255, 204, 0, 0.2); }
+.task.p-backlog { border-left-color: var(--accent); }
+
+@keyframes pulse-red {
+  0% { box-shadow: 0 0 5px rgba(255, 0, 60, 0.2); }
+  50% { box-shadow: 0 0 20px rgba(255, 0, 60, 0.4); }
+  100% { box-shadow: 0 0 5px rgba(255, 0, 60, 0.2); }
+}
+
+/* Drag & Drop */
+.task.dragging { opacity: 0.4; border: 1px dashed var(--accent); }
+.task-list { min-height: 50px; }
+
+/* Filter Bar */
+.filter-bar {
+  margin: 0 20px 10px 20px;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 5px;
+}
+.tag-btn {
+  font-size: 9px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  background: rgba(0, 255, 157, 0.05);
+  color: var(--muted);
+  cursor: pointer;
+}
+.tag-btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(0, 255, 157, 0.1);
+}
+
+/* Batch Import Modal/Area */
+#importArea {
+  display: none;
+  width: 100%;
+  height: 100px;
+  margin-top: 10px;
+  font-size: 11px;
+  border-color: var(--border);
+}
+
 .btn {
   width: 100%;
   padding: 12px;
   text-align: center;
-  /* ... resto do btn ... */
+  cursor: pointer;
+  transition: all .2s ease;
+  user-select: none;
+  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: bold;
+  border-radius: 2px;
+  border: 1px solid var(--border);
+  background: rgba(0, 255, 157, 0.05);
+  color: var(--text);
 }
 .btn:hover{background: rgba(0, 255, 157, 0.15); border-color: var(--accent); box-shadow: var(--glow);}
 .btn:active{transform:scale(0.98)}
