@@ -8,7 +8,7 @@
   </head>
   <body>
     <header>
-      <div class="title">VOICE-TASK-MASTER v1.0</div>
+      <div class="title">VOICE-TASK-MASTER v1.1</div>
       <div class="subtitle">Neural Uplink Connected // Status: Online</div>
     </header>
 
@@ -27,6 +27,16 @@
         <button id="btnAdd" class="btn primary">Insert Task</button>
       </div>
 
+      <div id="filterBar" class="filter-bar" style="margin: 10px 0; display: flex; gap: 5px; overflow-x: auto;">
+        <div class="tag-btn active" data-tag="all" onclick="window.setFilter('all')">ALL</div>
+        <div class="tag-btn" data-tag="vtm" onclick="window.setFilter('vtm')">#VTM</div>
+        <div class="tag-btn" data-tag="ship" onclick="window.setFilter('ship')">#SHIP</div>
+        <div class="tag-btn" onclick="window.toggleImport()" style="border-style: dashed;">[Import]</div>
+      </div>
+
+      <textarea id="importArea" class="input" style="display:none; height: 60px; font-size: 10px;" placeholder="Paste tasks here..."></textarea>
+      <button id="btnDoImport" class="btn" style="display:none; margin-top: 5px;">Process Batch</button>
+
       <div class="row">
         <button id="btnExport" class="btn">Data Export</button>
         <button id="btnClearDone" class="btn danger">Purge Done</button>
@@ -37,10 +47,10 @@
 
     <section class="list">
       <div class="listHeader">
-        <div>Tasks</div>
+        <div>Active Tasks</div>
         <div id="count"></div>
       </div>
-      <div id="tasks"></div>
+      <div id="tasks" class="task-list"></div>
     </section>
 
     <footer>

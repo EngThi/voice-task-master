@@ -13,6 +13,8 @@ const btnClearDone = el("btnClearDone");
 const btnExport = el("btnExport");
 const btnStandup = el("btnStandup");
 
+let currentFilter = "all";
+
 async function loadTasks() {
   const data = await chrome.storage.local.get([STORAGE_KEY]);
   return data[STORAGE_KEY] || [];
@@ -37,11 +39,17 @@ function setHint(msg) {
 
 function render(tasks) {
   tasksEl.innerHTML = "";
-  countEl.textContent = `${tasks.filter(t => !t.done).length}/${tasks.length} open`;
+  const filtered = currentFilter === "all" ? tasks : tasks.filter(t => t.text.toLowerCase().includes(`#${currentFilter}`));
+  countEl.textContent = `${filtered.filter(t => !t.done).length}/${filtered.length} open`;
 
-  tasks.forEach((t) => {
+  filtered.forEach((t) => {
     const wrap = document.createElement("div");
     wrap.className = `task ${t.done ? "done" : ""} p-${t.priority || "backlog"}`;
+    wrap.draggable = true;
+    wrap.dataset.id = t.id;
+
+    wrap.addEventListener("dragstart", () => wrap.classList.add("dragging"));
+    wrap.addEventListener("dragend", () => wrap.classList.remove("dragging"));
 
     const cb = document.createElement("input");
     cb.type = "checkbox";
@@ -85,6 +93,32 @@ function render(tasks) {
   });
 }
 
+// Drag & Drop Logic
+tasksEl.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  const dragging = document.querySelector(".dragging");
+  const afterElement = getDragAfterElement(tasksEl, e.clientY);
+  if (afterElement == null) tasksEl.appendChild(dragging);
+  else tasksEl.insertBefore(dragging, afterElement);
+});
+
+tasksEl.addEventListener("drop", async () => {
+  const newOrderIds = [...document.querySelectorAll(".task")].map(t => t.dataset.id);
+  const all = await loadTasks();
+  const reordered = newOrderIds.map(id => all.find(t => t.id === id));
+  await saveTasks(reordered);
+});
+
+function getDragAfterElement(container, y) {
+  const elements = [...container.querySelectorAll(".task:not(.dragging)")];
+  return elements.reduce((closest, child) => {
+    const box = child.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+    if (offset < 0 && offset > closest.offset) return { offset: offset, element: child };
+    else return closest;
+  }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
 async function addTask(text, due, priority = "backlog") {
   const clean = (text || "").trim();
   if (!clean) {
@@ -94,26 +128,33 @@ async function addTask(text, due, priority = "backlog") {
     return;
   }
 
-  // Smart Priority Detection (30-min feature)
   if (clean.toLowerCase().includes("critical") || clean.toLowerCase().includes("urgent")) priority = "critical";
   else if (clean.toLowerCase().includes("ship") || clean.toLowerCase().includes("launch")) priority = "ship";
 
   const tasks = await loadTasks();
-  tasks.unshift({
-    id: uid(),
-    text: clean,
-    due: due || "",
-    priority,
-    done: false,
-    createdAt: Date.now()
-  });
+  tasks.unshift({ id: uid(), text: clean, due: due || "", priority, done: false, createdAt: Date.now() });
   await saveTasks(tasks);
-  render(tasks);
+  render(await loadTasks());
   taskText.value = "";
   setHint("Data Injected.");
   taskText.classList.add("flash");
   setTimeout(() => taskText.classList.remove("flash"), 400);
 }
+
+// Control Functions
+window.setFilter = (tag) => {
+  currentFilter = tag;
+  document.querySelectorAll('.tag-btn').forEach(b => b.classList.toggle('active', b.dataset.tag === tag));
+  loadTasks().then(render);
+};
+
+window.toggleImport = () => {
+  const area = el('importArea');
+  const btn = el('btnDoImport');
+  const display = area.style.display === 'none' ? 'block' : 'none';
+  area.style.display = display;
+  btn.style.display = display;
+};
 
 async function parseVoiceCommand(raw) {
   const t = (raw || "").trim().toLowerCase();
@@ -188,6 +229,13 @@ btnStandup.onclick = async () => {
   speechSynthesis.speak(u);
 };
 taskText.onkeydown = (e) => { e.key === "Enter" && addTask(taskText.value, taskDue.value); };
+
+el('btnDoImport').onclick = async () => {
+  const lines = el('importArea').value.split('\n').filter(l => l.trim());
+  for (const line of lines) await addTask(line, "");
+  el('importArea').value = "";
+  window.toggleImport();
+};
 
 (async function init() {
   render(await loadTasks());
