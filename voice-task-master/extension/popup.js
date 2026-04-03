@@ -14,6 +14,19 @@ const btnExport = el("btnExport");
 const btnStandup = el("btnStandup");
 
 let currentFilter = "all";
+let activeProjectTag = null;
+
+async function checkActiveTab() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tab?.url?.includes('flavortown.hackclub.com/projects/')) {
+    activeProjectTag = tab.url.split('/').pop();
+    const tagBtn = document.querySelector('[data-tag="project"]');
+    if (tagBtn) {
+      tagBtn.textContent = `#${activeProjectTag.toUpperCase()}`;
+      tagBtn.style.display = "block";
+    }
+  }
+}
 
 async function loadTasks() {
   const data = await chrome.storage.local.get([STORAGE_KEY]);
@@ -39,8 +52,13 @@ function setHint(msg) {
 
 function render(tasks) {
   tasksEl.innerHTML = "";
-  const filtered = currentFilter === "all" ? tasks : tasks.filter(t => t.text.toLowerCase().includes(`#${currentFilter}`));
-  countEl.textContent = `${filtered.filter(t => !t.done).length}/${filtered.length} open`;
+  const filtered = currentFilter === "all" 
+    ? tasks 
+    : currentFilter === "project" 
+      ? tasks.filter(t => activeProjectTag && t.text.toLowerCase().includes(`#${activeProjectTag}`))
+      : tasks.filter(t => t.text.toLowerCase().includes(`#${currentFilter}`));
+
+  countEl.textContent = `${filtered.filter(t => !t.done).length}/${filtered.length} in view`;
 
   filtered.forEach((t) => {
     const wrap = document.createElement("div");
@@ -66,16 +84,8 @@ function render(tasks) {
 
     const main = document.createElement("div");
     main.className = "main";
-    const text = document.createElement("div");
-    text.className = "text";
-    text.textContent = t.text;
-    
-    const meta = document.createElement("div");
-    meta.className = "meta";
-    meta.textContent = t.due ? `Due: ${t.due}` : "No due date";
-
-    main.appendChild(text);
-    main.appendChild(meta);
+    const textStr = activeProjectTag ? t.text.replace(`#${activeProjectTag}`, '').trim() : t.text;
+    main.innerHTML = `<div class="text">${textStr}</div><div class="meta">${t.due || "No deadline"}</div>`;
 
     const del = document.createElement("button");
     del.className = "del";
@@ -93,7 +103,7 @@ function render(tasks) {
   });
 }
 
-// Drag & Drop Logic
+// Drag & Drop
 tasksEl.addEventListener("dragover", (e) => {
   e.preventDefault();
   const dragging = document.querySelector(".dragging");
@@ -120,124 +130,75 @@ function getDragAfterElement(container, y) {
 }
 
 async function addTask(text, due, priority = "backlog") {
-  const clean = (text || "").trim();
-  if (!clean) {
-    setHint("⚠️ Type something first.");
-    taskText.classList.add("flash");
-    setTimeout(() => taskText.classList.remove("flash"), 400);
-    return;
+  let clean = (text || "").trim();
+  if (!clean) return;
+
+  // Auto-Tagging: Link task to the active Flavortown project
+  if (activeProjectTag && !clean.includes(`#${activeProjectTag}`)) {
+    clean += ` #${activeProjectTag}`;
   }
 
-  if (clean.toLowerCase().includes("critical") || clean.toLowerCase().includes("urgent")) priority = "critical";
-  else if (clean.toLowerCase().includes("ship") || clean.toLowerCase().includes("launch")) priority = "ship";
+  if (clean.toLowerCase().includes("critical")) priority = "critical";
+  else if (clean.toLowerCase().includes("ship")) priority = "ship";
 
   const tasks = await loadTasks();
   tasks.unshift({ id: uid(), text: clean, due: due || "", priority, done: false, createdAt: Date.now() });
   await saveTasks(tasks);
   render(await loadTasks());
   taskText.value = "";
-  setHint("Data Injected.");
   taskText.classList.add("flash");
   setTimeout(() => taskText.classList.remove("flash"), 400);
 }
 
-// Control Functions
 window.setFilter = (tag) => {
   currentFilter = tag;
   document.querySelectorAll('.tag-btn').forEach(b => b.classList.toggle('active', b.dataset.tag === tag));
   loadTasks().then(render);
 };
 
-window.toggleImport = () => {
-  const area = el('importArea');
-  const btn = el('btnDoImport');
-  const display = area.style.display === 'none' ? 'block' : 'none';
-  area.style.display = display;
-  btn.style.display = display;
-};
-
 async function parseVoiceCommand(raw) {
   const t = (raw || "").trim().toLowerCase();
-  if (t.includes("clear all") || t.includes("purge")) {
-    await saveTasks([]);
-    render([]);
-    return { text: null };
-  }
+  if (t.includes("clear all")) { await saveTasks([]); render([]); return { text: null }; }
   const m = t.match(/^add\s+/i);
-  const body = m ? t.replace(/^add\s+/i, "") : t;
-  return { text: body };
+  return { text: m ? t.replace(/^add\s+/i, "") : t };
 }
 
-/* Voice & Wiring */
+/* Voice */
 let recognition = null;
 let listening = false;
-
-function getRecognition() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) return null;
-  const r = new SR();
-  r.lang = "en-US";
-  return r;
-}
-
 async function toggleVoice() {
-  if (listening) {
-    listening = false;
-    btnVoice.classList.remove("recording");
-    btnVoice.textContent = "🎙️ Initialize Voice";
-    recognition?.stop();
-    return;
-  }
-  recognition = getRecognition();
-  if (!recognition) return;
+  if (listening) { listening = false; btnVoice.classList.remove("recording"); btnVoice.textContent = "🎙️ Initialize Voice"; recognition?.stop(); return; }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+  recognition = new SR();
+  recognition.lang = "en-US";
   listening = true;
   btnVoice.classList.add("recording");
   btnVoice.textContent = "🛑 Uplink Active...";
-
   recognition.onresult = async (ev) => {
     const spoken = ev?.results?.[0]?.[0]?.transcript || "";
-    setHint(`Uplink: "${spoken}"`);
     const { text } = await parseVoiceCommand(spoken);
     if (text) addTask(text, "");
-    btnVoice.classList.remove("recording");
-    btnVoice.textContent = "🎙️ Initialize Voice";
-    listening = false;
+    toggleVoice();
   };
-  recognition.onerror = () => {
-    listening = false;
-    btnVoice.classList.remove("recording");
-    btnVoice.textContent = "🎙️ Initialize Voice";
-    window.open(window.location.href + "?auth=1");
-  };
+  recognition.onerror = () => { toggleVoice(); window.open(window.location.href + "?auth=1"); };
   recognition.start();
 }
 
 btnAdd.onclick = () => addTask(taskText.value, taskDue.value);
-btnClearDone.onclick = async () => {
-  const all = await loadTasks();
-  await saveTasks(all.filter(t => !t.done));
-  render(await loadTasks());
-};
+btnClearDone.onclick = async () => { const all = await loadTasks(); await saveTasks(all.filter(t => !t.done)); render(await loadTasks()); };
 btnVoice.onclick = toggleVoice;
 btnStandup.onclick = async () => {
   const tasks = await loadTasks();
   const open = tasks.filter(t => !t.done);
   const msg = `Grid Status: ${open.length} tasks open.`;
-  setHint(msg);
   const u = new SpeechSynthesisUtterance(msg);
-  u.lang = "en-US";
-  speechSynthesis.speak(u);
+  u.lang = "en-US"; speechSynthesis.speak(u);
 };
 taskText.onkeydown = (e) => { e.key === "Enter" && addTask(taskText.value, taskDue.value); };
 
-el('btnDoImport').onclick = async () => {
-  const lines = el('importArea').value.split('\n').filter(l => l.trim());
-  for (const line of lines) await addTask(line, "");
-  el('importArea').value = "";
-  window.toggleImport();
-};
-
 (async function init() {
+  await checkActiveTab();
   render(await loadTasks());
   taskText.focus();
 })();
