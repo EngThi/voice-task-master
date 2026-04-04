@@ -7,9 +7,9 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <header>
-      <div class="title">VOICE-TASK-MASTER v1.1.2</div>
-      <div class="subtitle">Universal Ship Bridge // Status: Online</div>
+    <header id="vtm-header">
+      <div class="title" id="headerTitle">VOICE-TASK-MASTER v1.4.0</div>
+      <div class="subtitle" id="headerSubtitle">Universal Ship Bridge // Status: Online</div>
     </header>
 
     <section class="panel">
@@ -27,8 +27,7 @@
         <button id="btnAdd" class="btn primary">Insert Task</button>
       </div>
 
-      <!-- Dynamic Project Filter — onclick removido, wired via popup.js -->
-      <div id="filterBar" class="filter-bar" style="margin: 10px 0; display: flex; gap: 5px;">
+      <div id="filterBar" class="filter-bar">
         <div class="tag-btn active" data-tag="all">ALL</div>
         <div class="tag-btn" data-tag="project" style="display:none;">#PROJECT</div>
       </div>
@@ -43,7 +42,7 @@
 
     <section class="list">
       <div class="listHeader">
-        <div id="count">0/0 in view</div>
+        <div id="count">0 active missions</div>
       </div>
       <div id="tasks" class="task-list"></div>
     </section>
@@ -54,6 +53,7 @@
       </div>
     </footer>
 
+    <script src="i18n.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>

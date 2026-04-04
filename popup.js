@@ -10,30 +10,61 @@ const btnVoice = el("btnVoice");
 
 let activeProject = null;
 let currentFilter = "all";
+let isKitchenMode = false;
+
+/* --- APPLY i18n --- */
+function applyLocale() {
+  taskText.placeholder = VTM_I18N.placeholder;
+  btnVoice.textContent = VTM_I18N.btnVoice;
+  el("btnAdd").textContent = VTM_I18N.btnAdd;
+  el("btnStandup").textContent = VTM_I18N.btnStandup;
+  el("btnExport").textContent = VTM_I18N.btnExport;
+  el("btnClearDone").textContent = VTM_I18N.btnClearDone;
+  hintEl.textContent = VTM_I18N.hintSync;
+}
 
 /* --- DATA LAYER --- */
-async function loadTasks() { const data = await chrome.storage.local.get([STORAGE_KEY]); return data[STORAGE_KEY] || []; }
-async function saveTasks(tasks) { await chrome.storage.local.set({ [STORAGE_KEY]: tasks }); }
+async function loadTasks() {
+  const data = await chrome.storage.local.get([STORAGE_KEY]);
+  return data[STORAGE_KEY] || [];
+}
+async function saveTasks(tasks) {
+  await chrome.storage.local.set({ [STORAGE_KEY]: tasks });
+}
 
+/* --- CONTEXT + KITCHEN MODE --- */
 async function checkContext() {
   const data = await chrome.storage.local.get([CONTEXT_KEY]);
   activeProject = data[CONTEXT_KEY] || null;
-  if (activeProject && activeProject.name) {
-    setHint(`Uplink: ${activeProject.name.substring(0,15)}`);
+
+  isKitchenMode = !activeProject || !activeProject.id;
+
+  if (isKitchenMode) {
+    // Kitchen: global overview mode
+    el("headerTitle").textContent = VTM_I18N.kitchenTitle;
+    el("headerSubtitle").textContent = VTM_I18N.kitchenSubtitle;
+    el("vtm-header").classList.add("kitchen-mode");
+    const tagBtn = document.querySelector('[data-tag="project"]');
+    if (tagBtn) tagBtn.style.display = "none";
+  } else {
+    // Project mode
+    el("headerTitle").textContent = `${VTM_I18N.projectTitle} v1.4.0`;
+    el("headerSubtitle").textContent = `${activeProject.name.toUpperCase()} // ${VTM_I18N.projectSubtitle.split("//")[1].trim()}`;
+    el("vtm-header").classList.remove("kitchen-mode");
     const tagBtn = document.querySelector('[data-tag="project"]');
     if (tagBtn) {
-      const label = activeProject.id ? `#${activeProject.id.toUpperCase()}` : "#Kitchen";
-      tagBtn.textContent = label;
+      tagBtn.textContent = `#${activeProject.id.toUpperCase()}`;
       tagBtn.style.display = "block";
     }
+    setHint(`${VTM_I18N.hintUplink}: ${activeProject.name.substring(0, 18)}`);
   }
 }
 
 /* --- UI ENGINE --- */
 function setHint(msg) {
   hintEl.textContent = msg || "";
-  hintEl.style.color = activeProject ? "#ffcc00" : "#00ff9d";
-  setTimeout(() => { if (hintEl.textContent === msg) hintEl.textContent = "System Ready."; }, 4000);
+  hintEl.style.color = isKitchenMode ? "#4ecca3" : (activeProject ? "#ffcc00" : "#00ff9d");
+  setTimeout(() => { if (hintEl.textContent === msg) hintEl.textContent = VTM_I18N.hintReady; }, 4000);
 }
 
 const GROUP_LABELS = {
@@ -50,13 +81,18 @@ const PRIORITY_LABELS = {
 
 function render(tasks) {
   tasksEl.innerHTML = "";
-  const filtered =
-    currentFilter === "all" ? tasks :
-    currentFilter === "project" ? tasks.filter(t => t.projectId === activeProject?.id) :
-    tasks.filter(t => t.text.toLowerCase().includes(`#${currentFilter}`));
+
+  let filtered;
+  if (currentFilter === "all") {
+    filtered = isKitchenMode ? tasks : tasks.filter(t => t.projectId === activeProject?.id || !t.projectId);
+  } else if (currentFilter === "project") {
+    filtered = tasks.filter(t => t.projectId === activeProject?.id);
+  } else {
+    filtered = tasks.filter(t => t.text.toLowerCase().includes(`#${currentFilter}`));
+  }
 
   const active = filtered.filter(t => !t.done).length;
-  countEl.textContent = `${active} active missions`;
+  countEl.textContent = VTM_I18N.activeMissions(active);
 
   filtered.forEach(t => {
     const wrap = document.createElement("div");
@@ -90,7 +126,8 @@ function render(tasks) {
       const all = await loadTasks();
       const idx = all.findIndex(x => x.id === t.id);
       if (idx !== -1) all[idx].done = e.target.checked;
-      await saveTasks(all); render(all);
+      await saveTasks(all);
+      render(all);
     };
 
     wrap.querySelector(".del").onclick = async () => {
@@ -105,40 +142,37 @@ function render(tasks) {
 
 /* --- MISSION CONTROL --- */
 async function celebrateShip() {
-  // Guard against connection error when tab has no content script
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (!tabs[0]?.id) return;
     chrome.tabs.sendMessage(tabs[0].id, { type: "CELEBRATE_SHIP" }, () => {
-      if (chrome.runtime.lastError) {
-        // Tab doesn't have content script — ignore silently
-      }
+      if (chrome.runtime.lastError) { /* tab sem content script — ok */ }
     });
   });
   const all = await loadTasks();
   const remaining = all.filter(t => !t.done);
   await saveTasks(remaining);
   render(remaining);
-  speak("Ship confirmed. Great work, Chef.");
+  speak(VTM_I18N.hintShip);
 }
 
 async function generateShipLog() {
   const all = await loadTasks();
   const done = all.filter(t => t.done && (!activeProject || !activeProject.id || t.projectId === activeProject.id));
-  if (done.length === 0) { setHint("No completed tasks found."); return; }
+  if (done.length === 0) { setHint(VTM_I18N.hintNoTasks); return; }
 
   const groups = {};
   done.forEach(t => { groups[t.group] = groups[t.group] || []; groups[t.group].push(t.text); });
 
-  let md = `# Ship Log: ${activeProject?.name || "VTM Session"}\n\n`;
+  let md = VTM_I18N.shipLogHeader(activeProject?.name || "VTM Session");
   for (const g in groups) { md += `### ${g}\n- ${groups[g].join("\n- ")}\n\n`; }
 
   await navigator.clipboard.writeText(md);
-  setHint("Ship Log copied to clipboard!");
+  setHint(VTM_I18N.hintCopied);
 }
 
 function speak(txt) {
   const u = new SpeechSynthesisUtterance(txt);
-  u.lang = "en-US";
+  u.lang = VTM_I18N.voiceLang;
   window.speechSynthesis.speak(u);
 }
 
@@ -199,24 +233,52 @@ function getDragAfterElement(container, y) {
   }, { offset: Number.NEGATIVE_INFINITY }).element;
 }
 
-/* --- VOICE --- */
+/* --- VOICE — fixed infinite loop --- */
 let recognition = null;
+let voiceActive = false;
+
 async function toggleVoice() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) { setHint("Voice not supported in this browser."); return; }
-  if (recognition) {
-    recognition.stop();
+  if (!SR) { setHint(VTM_I18N.hintNoVoice); return; }
+
+  if (voiceActive) {
+    recognition?.stop();
     recognition = null;
+    voiceActive = false;
     btnVoice.classList.remove("recording");
     return;
   }
+
   recognition = new SR();
-  recognition.lang = "en-US";
+  recognition.lang = VTM_I18N.voiceLang;
   recognition.interimResults = false;
+  recognition.continuous = false;
+  voiceActive = true;
   btnVoice.classList.add("recording");
-  recognition.onresult = (ev) => { addTask(ev.results[0][0].transcript); toggleVoice(); };
-  recognition.onerror = (ev) => { setHint(`Voice error: ${ev.error}`); toggleVoice(); };
-  recognition.onend = () => { if (recognition) toggleVoice(); };
+
+  recognition.onresult = (ev) => {
+    addTask(ev.results[0][0].transcript);
+    voiceActive = false;
+    recognition = null;
+    btnVoice.classList.remove("recording");
+  };
+
+  recognition.onerror = (ev) => {
+    setHint(`${VTM_I18N.hintVoiceError}: ${ev.error}`);
+    voiceActive = false;
+    recognition = null;
+    btnVoice.classList.remove("recording");
+  };
+
+  // Fixed: onend no longer calls toggleVoice() — prevents infinite loop
+  recognition.onend = () => {
+    if (voiceActive) {
+      voiceActive = false;
+      recognition = null;
+      btnVoice.classList.remove("recording");
+    }
+  };
+
   recognition.start();
 }
 
@@ -245,7 +307,7 @@ el("btnExport").addEventListener("click", async () => {
   const all = await loadTasks();
   const json = JSON.stringify(all, null, 2);
   await navigator.clipboard.writeText(json);
-  setHint("Tasks exported to clipboard (JSON).");
+  setHint(VTM_I18N.hintExported);
 });
 
 taskText.addEventListener("keydown", (e) => { if (e.key === "Enter") addTask(taskText.value); });
@@ -255,4 +317,9 @@ window.addEventListener("keydown", (e) => {
   if (e.ctrlKey && e.key.toLowerCase() === "k") { e.preventDefault(); taskText.focus(); }
 });
 
-(async function init() { await checkContext(); render(await loadTasks()); taskText.focus(); })();
+(async function init() {
+  applyLocale();
+  await checkContext();
+  render(await loadTasks());
+  taskText.focus();
+})();
