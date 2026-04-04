@@ -10,14 +10,14 @@ A voice-first productivity extension designed for the Hack Club Flavortown commu
 - **Productivity Hotkeys:** Activate voice recognition instantly with `Ctrl+Shift+V`.
 
 ## Installation
-1. Download the `vtm_v1.3.1_FINAL.zip` from this repository.
+1. Download the `vtm_v1.3.1.zip` from this repository.
 2. Open your browser's extensions page (`chrome://extensions`).
 3. Enable "Developer Mode".
 4. Use "Load unpacked" on the extracted `extension` folder or install the `.crx` file.
 
 ## Official Release
 Check the latest releases for the official `.crx` installer:
-https://github.com/EngThi/voice-task-master/releases/tag/v1.3.1
+[Latest Release](https://github.com/EngThi/voice-task-master/releases/latest)
 
 ---
-Developed on Android via Termux. [Flavortown Project #4322]
+Developed on Android via Termux. And debugged a great part on Edge Canary. [Flavortown Project #4322]
