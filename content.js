@@ -3,6 +3,24 @@
   const STORAGE_KEY = "vtm_tasks_v1";
   const CONTEXT_KEY = "vtm_active_context";
 
+  /* --- PROJECT CONTEXT DETECTION (inspired by Spicetown) --- */
+  function detectProjectContext() {
+    const match = window.location.pathname.match(/\/projects\/([^\/]+)/);
+    if (match) {
+      const slug = match[1];
+      const nameEl = document.querySelector(".project-show-card__title-text");
+      const name = nameEl ? nameEl.textContent.trim() : slug;
+      chrome.storage.local.set({ [CONTEXT_KEY]: { id: slug, slug, name, url: location.href } });
+    } else if (window.location.pathname === "/kitchen" || window.location.pathname === "/") {
+      chrome.storage.local.set({ [CONTEXT_KEY]: { id: null, slug: null, name: "Kitchen", url: location.href } });
+    } else {
+      chrome.storage.local.remove(CONTEXT_KEY);
+    }
+  }
+
+  detectProjectContext();
+
+  /* --- HUD --- */
   const badge = document.createElement('div');
   badge.id = 'vtm-ship-hud';
   badge.innerHTML = `
@@ -33,7 +51,7 @@
   `;
   document.head.appendChild(style);
 
-  // Listen for Ship-It Celebration
+  /* --- MESSAGES --- */
   chrome.runtime.onMessage.addListener((msg) => {
     if (msg.type === "CELEBRATE_SHIP") {
       const flash = document.createElement('div');
@@ -41,19 +59,31 @@
       document.body.appendChild(flash);
       setTimeout(() => flash.remove(), 1000);
     }
+    if (msg.type === "GET_CONTEXT") {
+      detectProjectContext();
+    }
   });
 
+  /* --- HUD REFRESH --- */
   const refreshHUD = async () => {
     const data = await chrome.storage.local.get([STORAGE_KEY, CONTEXT_KEY]);
     const info = data[CONTEXT_KEY];
     const tasks = data[STORAGE_KEY] || [];
     const container = document.getElementById('vtm-hud-tasks');
-    const filtered = info ? tasks.filter(t => !t.done && t.projectId === info.id) : tasks.filter(t => !t.done).slice(0, 5);
+    const filtered = (info && info.id)
+      ? tasks.filter(t => !t.done && t.projectId === info.id)
+      : tasks.filter(t => !t.done).slice(0, 5);
     container.innerHTML = filtered.map(t => `<div class="vtm-hud-task">${t.text}</div>`).join('') || '<div style="opacity:0.5">Grid Clear.</div>';
-    if (info) document.getElementById('vtm-hud-project-name').textContent = `SHIP: ${info.name.toUpperCase()}`;
+    if (info && info.name) document.getElementById('vtm-hud-project-name').textContent = `SHIP: ${info.name.toUpperCase()}`;
+    else document.getElementById('vtm-hud-project-name').textContent = 'Ready...';
   };
 
   refreshHUD();
   chrome.storage.onChanged.addListener(refreshHUD);
-  let sec = 0; setInterval(() => { sec++; document.getElementById('vtm-hud-timer').textContent = `${Math.floor(sec/60).toString().padStart(2,'0')}:${(sec%60).toString().padStart(2,'0')}`; }, 1000);
+  let sec = 0;
+  setInterval(() => {
+    sec++;
+    document.getElementById('vtm-hud-timer').textContent =
+      `${Math.floor(sec/60).toString().padStart(2,'0')}:${(sec%60).toString().padStart(2,'0')}`;
+  }, 1000);
 })();

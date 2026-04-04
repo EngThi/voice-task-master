@@ -18,10 +18,14 @@ async function saveTasks(tasks) { await chrome.storage.local.set({ [STORAGE_KEY]
 async function checkContext() {
   const data = await chrome.storage.local.get([CONTEXT_KEY]);
   activeProject = data[CONTEXT_KEY] || null;
-  if (activeProject) {
-    setHint(`Uplink: ${activeProject.name.substring(0,15)}...`);
+  if (activeProject && activeProject.name) {
+    setHint(`Uplink: ${activeProject.name.substring(0,15)}`);
     const tagBtn = document.querySelector('[data-tag="project"]');
-    if (tagBtn) { tagBtn.textContent = `#${activeProject.id.toUpperCase()}`; tagBtn.style.display = "block"; }
+    if (tagBtn) {
+      const label = activeProject.id ? `#${activeProject.id.toUpperCase()}` : "#Kitchen";
+      tagBtn.textContent = label;
+      tagBtn.style.display = "block";
+    }
   }
 }
 
@@ -63,9 +67,11 @@ function render(tasks) {
     wrap.addEventListener("dragstart", () => wrap.classList.add("dragging"));
     wrap.addEventListener("dragend", () => wrap.classList.remove("dragging"));
 
-    const groupLabel = GROUP_LABELS[t.group] || t.group;
-    const priorityLabel = PRIORITY_LABELS[t.priority] || t.priority;
-    const displayText = activeProject ? t.text.replace(`#${activeProject.id}`, "").trim() : t.text;
+    const groupLabel = GROUP_LABELS[t.group] || t.group || "📋 Task";
+    const priorityLabel = PRIORITY_LABELS[t.priority] || t.priority || "⬜ Backlog";
+    const displayText = (activeProject && activeProject.id)
+      ? t.text.replace(`#${activeProject.id}`, "").trim()
+      : t.text;
 
     wrap.innerHTML = `
       <input type="checkbox" ${t.done ? "checked" : ""}>
@@ -99,8 +105,15 @@ function render(tasks) {
 
 /* --- MISSION CONTROL --- */
 async function celebrateShip() {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (tab) chrome.tabs.sendMessage(tab.id, { type: "CELEBRATE_SHIP" });
+  // Guard against connection error when tab has no content script
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (!tabs[0]?.id) return;
+    chrome.tabs.sendMessage(tabs[0].id, { type: "CELEBRATE_SHIP" }, () => {
+      if (chrome.runtime.lastError) {
+        // Tab doesn't have content script — ignore silently
+      }
+    });
+  });
   const all = await loadTasks();
   const remaining = all.filter(t => !t.done);
   await saveTasks(remaining);
@@ -110,7 +123,7 @@ async function celebrateShip() {
 
 async function generateShipLog() {
   const all = await loadTasks();
-  const done = all.filter(t => t.done && (!activeProject || t.projectId === activeProject.id));
+  const done = all.filter(t => t.done && (!activeProject || !activeProject.id || t.projectId === activeProject.id));
   if (done.length === 0) { setHint("No completed tasks found."); return; }
 
   const groups = {};
@@ -146,10 +159,10 @@ async function addTask(text) {
   const tasks = await loadTasks();
   tasks.unshift({
     id: Math.random().toString(16).slice(2),
-    text: activeProject ? `${clean} #${activeProject.id}` : clean,
+    text: (activeProject && activeProject.id) ? `${clean} #${activeProject.id}` : clean,
     priority,
     group,
-    projectId: activeProject ? activeProject.id : null,
+    projectId: (activeProject && activeProject.id) ? activeProject.id : null,
     done: false,
     createdAt: Date.now(),
   });
@@ -207,7 +220,7 @@ async function toggleVoice() {
   recognition.start();
 }
 
-/* --- FILTER (wired here, no inline onclick) --- */
+/* --- FILTER --- */
 window.setFilter = (f) => {
   currentFilter = f;
   document.querySelectorAll(".tag-btn").forEach(b => b.classList.toggle("active", b.dataset.tag === f));
