@@ -1,4 +1,4 @@
-# Voice Task Master (VTM) v1.3.1
+# Voice Task Master (VTM) v1.4.0
 
 A voice-first productivity extension designed for the Hack Club Flavortown community. VTM allows developers to manage project backlogs using speech recognition and provides a real-time HUD integrated directly into project pages.
 
@@ -10,7 +10,7 @@ A voice-first productivity extension designed for the Hack Club Flavortown commu
 - **Productivity Hotkeys:** Activate voice recognition instantly with `Ctrl+Shift+V`.
 
 ## Installation
-1. Download the `vtm_v1.3.1.zip` from this repository.
+1. Download the `vtm_v(**latest**)zip` from this repository.
 2. Open your browser's extensions page (`chrome://extensions`).
 3. Enable "Developer Mode".
 4. Use "Load unpacked" on the extracted `extension` folder or install the `.crx` file.
