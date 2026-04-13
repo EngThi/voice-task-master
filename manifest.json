@@ -4,7 +4,11 @@
   "version": "1.4.1",
   "description": "Voice-first task manager for high-intensity developers. Integrated Ship Mode for Flavortown.",
   "author": "EngThi // Hacker",
-  "permissions": ["storage", "activeTab", "tabs"],
+  "permissions": [
+    "storage",
+    "activeTab",
+    "tabs"
+  ],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
@@ -20,8 +24,13 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://flavortown.hackclub.com/*"],
-      "js": ["i18n.js", "content.js"]
+      "matches": [
+        "*://flavortown.hackclub.com/*"
+      ],
+      "js": [
+        "i18n.js",
+        "content.js"
+      ]
     }
   ],
   "commands": {
@@ -38,5 +47,18 @@
       "description": "Activate Neural Voice Uplink"
     }
   },
-  "offline_enabled": true
+  "offline_enabled": true,
+  "background": {
+    "service_worker": "background.js"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "permissions.html"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
 }
