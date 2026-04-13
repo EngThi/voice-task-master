@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "VOICE-TASK-MASTER (VTM)",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Voice-first task manager for high-intensity developers. Integrated Ship Mode for Flavortown.",
   "author": "EngThi // Hacker",
   "permissions": ["storage", "activeTab", "tabs"],
@@ -21,8 +21,22 @@
   "content_scripts": [
     {
       "matches": ["*://flavortown.hackclub.com/*"],
-      "js": ["content.js"]
+      "js": ["i18n.js", "content.js"]
     }
   ],
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Y",
+        "mac": "Command+Shift+Y"
+      }
+    },
+    "activate-voice": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+V"
+      },
+      "description": "Activate Neural Voice Uplink"
+    }
+  },
   "offline_enabled": true
 }
