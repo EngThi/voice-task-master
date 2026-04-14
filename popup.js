@@ -21,6 +21,8 @@ function applyLocale() {
   el("btnExport").textContent = VTM_I18N.btnExport;
   el("btnClearDone").textContent = VTM_I18N.btnClearDone;
   hintEl.textContent = VTM_I18N.hintSync;
+  // Salva o idioma para o background.js usar no offscreen
+  chrome.storage.local.set({ vtm_voice_lang: VTM_I18N.voiceLang });
 }
 
 /* --- DATA LAYER --- */
@@ -40,15 +42,13 @@ async function checkContext() {
   isKitchenMode = !activeProject || !activeProject.id;
 
   if (isKitchenMode) {
-    // Kitchen: global overview mode
     el("headerTitle").textContent = VTM_I18N.kitchenTitle;
     el("headerSubtitle").textContent = VTM_I18N.kitchenSubtitle;
     el("vtm-header").classList.add("kitchen-mode");
     const tagBtn = document.querySelector('[data-tag="project"]');
     if (tagBtn) tagBtn.style.display = "none";
   } else {
-    // Project mode
-    el("headerTitle").textContent = `${VTM_I18N.projectTitle} v1.4.0`;
+    el("headerTitle").textContent = `${VTM_I18N.projectTitle} v1.5.0`;
     el("headerSubtitle").textContent = `${activeProject.name.toUpperCase()} // ${VTM_I18N.projectSubtitle.split("//")[1].trim()}`;
     el("vtm-header").classList.remove("kitchen-mode");
     const tagBtn = document.querySelector('[data-tag="project"]');
@@ -233,7 +233,7 @@ function getDragAfterElement(container, y) {
   }, { offset: Number.NEGATIVE_INFINITY }).element;
 }
 
-/* --- VOICE — fixed infinite loop --- */
+/* --- VOICE — popup button (roda no contexto do popup) --- */
 let recognition = null;
 let voiceActive = false;
 
@@ -255,9 +255,11 @@ async function toggleVoice() {
   recognition.continuous = false;
   voiceActive = true;
   btnVoice.classList.add("recording");
+  setHint("🎙️ Ouvindo...");
 
   recognition.onresult = (ev) => {
-    addTask(ev.results[0][0].transcript);
+    const transcript = ev.results[0][0].transcript;
+    addTask(transcript);
     voiceActive = false;
     recognition = null;
     btnVoice.classList.remove("recording");
@@ -270,7 +272,6 @@ async function toggleVoice() {
     btnVoice.classList.remove("recording");
   };
 
-  // Fixed: onend no longer calls toggleVoice() — prevents infinite loop
   recognition.onend = () => {
     if (voiceActive) {
       voiceActive = false;
@@ -279,7 +280,14 @@ async function toggleVoice() {
     }
   };
 
-  recognition.start();
+  try {
+    recognition.start();
+  } catch(e) {
+    setHint(`${VTM_I18N.hintVoiceError}: ${e.message}`);
+    voiceActive = false;
+    recognition = null;
+    btnVoice.classList.remove("recording");
+  }
 }
 
 /* --- FILTER --- */
@@ -312,9 +320,29 @@ el("btnExport").addEventListener("click", async () => {
 
 taskText.addEventListener("keydown", (e) => { if (e.key === "Enter") addTask(taskText.value); });
 
+// Ctrl+Shift+V dentro do popup (fallback caso o popup esteja aberto)
 window.addEventListener("keydown", (e) => {
   if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "v") toggleVoice();
   if (e.ctrlKey && e.key.toLowerCase() === "k") { e.preventDefault(); taskText.focus(); }
+});
+
+/* --- POLLING: consome resultado do offscreen (via Ctrl+Shift+V global) --- */
+let pendingInterval = null;
+
+function startPendingPoll() {
+  if (pendingInterval) return;
+  pendingInterval = setInterval(async () => {
+    const data = await chrome.storage.local.get(["vtm_voice_pending"]);
+    if (data.vtm_voice_pending) {
+      addTask(data.vtm_voice_pending);
+      await chrome.storage.local.remove(["vtm_voice_pending"]);
+      setHint("✅ " + VTM_I18N.hintReady);
+    }
+  }, 500);
+}
+
+window.addEventListener("unload", () => {
+  if (pendingInterval) clearInterval(pendingInterval);
 });
 
 (async function init() {
@@ -322,4 +350,12 @@ window.addEventListener("keydown", (e) => {
   await checkContext();
   render(await loadTasks());
   taskText.focus();
+  startPendingPoll();
+
+  // Consome voz pendente imediata (caso shortcut tenha sido usado antes de abrir)
+  const pending = await chrome.storage.local.get(["vtm_voice_pending"]);
+  if (pending.vtm_voice_pending) {
+    addTask(pending.vtm_voice_pending);
+    await chrome.storage.local.remove(["vtm_voice_pending"]);
+  }
 })();
