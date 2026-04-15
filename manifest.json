@@ -7,8 +7,7 @@
   "permissions": [
     "storage",
     "activeTab",
-    "tabs",
-    "offscreen"
+    "tabs"
   ],
   "action": {
     "default_popup": "popup.html",
@@ -55,8 +54,7 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "permissions.html",
-        "offscreen.html"
+        "permissions.html"
       ],
       "matches": [
         "<all_urls>"

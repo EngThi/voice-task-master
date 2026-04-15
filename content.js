@@ -60,29 +60,55 @@
     if (recognition) { recognition.stop(); return; }
 
     recognition = new SR();
-    recognition.lang = "en-US";
+    recognition.lang = VTM_I18N.voiceLang;
+    recognition.interimResults = true;
     const statusEl = document.getElementById('vtm-hud-status');
+    const projectNameEl = document.getElementById('vtm-hud-project-name');
+    const originalProjectName = projectNameEl.textContent;
     
     recognition.onstart = () => { statusEl.style.display = 'block'; };
     recognition.onresult = async (ev) => {
-      const text = ev.results[0][0].transcript;
-      const data = await chrome.storage.local.get([STORAGE_KEY, CONTEXT_KEY]);
-      const tasks = data[STORAGE_KEY] || [];
-      const info = data[CONTEXT_KEY];
-      
-      tasks.unshift({
-        id: Math.random().toString(16).slice(2),
-        text: info?.id ? `${text} #${info.id}` : text,
-        priority: text.toLowerCase().includes("critical") ? "critical" : "backlog",
-        group: "Voice",
-        projectId: info?.id || null,
-        done: false,
-        createdAt: Date.now()
-      });
-      await chrome.storage.local.set({ [STORAGE_KEY]: tasks });
+      let interim = "";
+      let final = "";
+      for (let i = ev.resultIndex; i < ev.results.length; i++) {
+        if (ev.results[i].isFinal) final += ev.results[i][0].transcript;
+        else interim += ev.results[i][0].transcript;
+      }
+
+      if (interim) {
+        projectNameEl.textContent = `🎙️ ${interim}`;
+        projectNameEl.style.color = "#ffcc00";
+      }
+
+      if (final) {
+        const data = await chrome.storage.local.get([STORAGE_KEY, CONTEXT_KEY]);
+        const tasks = data[STORAGE_KEY] || [];
+        const info = data[CONTEXT_KEY];
+        
+        tasks.unshift({
+          id: Math.random().toString(16).slice(2),
+          text: info?.id ? `${final} #${info.id}` : final,
+          priority: final.toLowerCase().includes("critical") ? "critical" : "backlog",
+          group: "Voice",
+          projectId: info?.id || null,
+          done: false,
+          createdAt: Date.now()
+        });
+        await chrome.storage.local.set({ [STORAGE_KEY]: tasks });
+        projectNameEl.textContent = originalProjectName;
+        projectNameEl.style.color = "#ffcc00";
+      }
     };
-    recognition.onend = () => { statusEl.style.display = 'none'; recognition = null; };
-    recognition.onerror = () => { statusEl.style.display = 'none'; recognition = null; };
+    recognition.onend = () => { 
+      statusEl.style.display = 'none'; 
+      recognition = null; 
+      setTimeout(() => { projectNameEl.textContent = originalProjectName; }, 1000);
+    };
+    recognition.onerror = () => { 
+      statusEl.style.display = 'none'; 
+      recognition = null; 
+      projectNameEl.textContent = "Voice Error";
+    };
     recognition.start();
   }
 

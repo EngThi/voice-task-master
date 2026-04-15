@@ -251,18 +251,27 @@ async function toggleVoice() {
 
   recognition = new SR();
   recognition.lang = VTM_I18N.voiceLang;
-  recognition.interimResults = false;
+  recognition.interimResults = true;   // ← mudou de false para true
   recognition.continuous = false;
   voiceActive = true;
   btnVoice.classList.add("recording");
   setHint("🎙️ Ouvindo...");
 
   recognition.onresult = (ev) => {
-    const transcript = ev.results[0][0].transcript;
-    addTask(transcript);
-    voiceActive = false;
-    recognition = null;
-    btnVoice.classList.remove("recording");
+    let interim = "";
+    let final = "";
+    for (let i = ev.resultIndex; i < ev.results.length; i++) {
+      if (ev.results[i].isFinal) final += ev.results[i][0].transcript;
+      else interim += ev.results[i][0].transcript;
+    }
+    // Mostra o que está sendo captado em tempo real no hint
+    if (interim) hintEl.textContent = `🎙️ ${interim}`;
+    if (final) {
+      addTask(final);
+      voiceActive = false;
+      recognition = null;
+      btnVoice.classList.remove("recording");
+    }
   };
 
   recognition.onerror = (ev) => {
@@ -326,23 +335,11 @@ window.addEventListener("keydown", (e) => {
   if (e.ctrlKey && e.key.toLowerCase() === "k") { e.preventDefault(); taskText.focus(); }
 });
 
-/* --- POLLING: consome resultado do offscreen (via Ctrl+Shift+V global) --- */
-let pendingInterval = null;
-
-function startPendingPoll() {
-  if (pendingInterval) return;
-  pendingInterval = setInterval(async () => {
-    const data = await chrome.storage.local.get(["vtm_voice_pending"]);
-    if (data.vtm_voice_pending) {
-      addTask(data.vtm_voice_pending);
-      await chrome.storage.local.remove(["vtm_voice_pending"]);
-      setHint("✅ " + VTM_I18N.hintReady);
-    }
-  }, 500);
-}
-
-window.addEventListener("unload", () => {
-  if (pendingInterval) clearInterval(pendingInterval);
+// Atualiza lista ao vivo quando outro contexto (content.js, background) salva tasks
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes[STORAGE_KEY]) {
+    render(changes[STORAGE_KEY].newValue || []);
+  }
 });
 
 (async function init() {
@@ -350,12 +347,4 @@ window.addEventListener("unload", () => {
   await checkContext();
   render(await loadTasks());
   taskText.focus();
-  startPendingPoll();
-
-  // Consome voz pendente imediata (caso shortcut tenha sido usado antes de abrir)
-  const pending = await chrome.storage.local.get(["vtm_voice_pending"]);
-  if (pending.vtm_voice_pending) {
-    addTask(pending.vtm_voice_pending);
-    await chrome.storage.local.remove(["vtm_voice_pending"]);
-  }
 })();
