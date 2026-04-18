@@ -10,6 +10,9 @@ A voice-first productivity extension for the Hack Club Flavortown community. Man
 - Priority glows (Critical/Ship/Backlog) based on command analysis.
 - Live transcription feedback (interim results) while speaking.
 - Global voice recognition works even when popup is closed.
+- **System with i18n implementation**
+
+  Translate the main data from the pop-up to the user's region. You can test this by going to your browser/Chrome: `chrome://settings/languages` ​​--> `Add languages` ​​--> Choose which ones you want to test, such as Portuguese, Japanese, Spanish, Mandarin, etc. 🗺️
 
 ## Hotkeys
 
