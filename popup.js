@@ -48,7 +48,7 @@ async function checkContext() {
     const tagBtn = document.querySelector('[data-tag="project"]');
     if (tagBtn) tagBtn.style.display = "none";
   } else {
-    el("headerTitle").textContent = `${VTM_I18N.projectTitle} v1.5.0`;
+    el("headerTitle").textContent = `${VTM_I18N.projectTitle} v1.5.1`;
     el("headerSubtitle").textContent = `${activeProject.name.toUpperCase()} // ${VTM_I18N.projectSubtitle.split("//")[1].trim()}`;
     el("vtm-header").classList.remove("kitchen-mode");
     const tagBtn = document.querySelector('[data-tag="project"]');
@@ -63,7 +63,7 @@ async function checkContext() {
 /* --- UI ENGINE --- */
 function setHint(msg) {
   hintEl.textContent = msg || "";
-  hintEl.style.color = isKitchenMode ? "#4ecca3" : (activeProject ? "#ffcc00" : "#00ff9d");
+  hintEl.style.color = isKitchenMode ? "#ff9f1c" : (activeProject ? "#ffcc00" : "#10B981");
   setTimeout(() => { if (hintEl.textContent === msg) hintEl.textContent = VTM_I18N.hintReady; }, 4000);
 }
 

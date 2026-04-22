@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "VOICE-TASK-MASTER (VTM)",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "Voice-first task manager for high-intensity developers. Integrated Ship Mode for Flavortown.",
   "author": "EngThi // Hacker",
   "permissions": [

@@ -1,4 +1,4 @@
-/* VTM v1.4.1 - Mission Control Edition */
+/* VTM v1.5.1 - Chef's Edition (Hack Club Native) */
 (function() {
   const STORAGE_KEY = "vtm_tasks_v1";
   const CONTEXT_KEY = "vtm_active_context";
@@ -29,25 +29,27 @@
       <span id="vtm-hud-timer">00:00</span>
     </div>
     <div id="vtm-hud-project-name">Ready...</div>
-    <div id="vtm-hud-status" style="font-size: 9px; margin-bottom: 5px; color: #ff003c; display: none;">● UPLINK ACTIVE</div>
+    <div id="vtm-hud-status" style="font-size: 10px; margin-bottom: 8px; color: #F567D7; font-weight: bold; display: none;">● UPLINK ACTIVE</div>
     <div id="vtm-hud-tasks"></div>
   `;
   
   Object.assign(badge.style, {
-    position: 'fixed', bottom: '20px', right: '20px', zIndex: '2147483647',
-    backgroundColor: 'rgba(5, 7, 10, 0.9)', border: '1px solid #00ff9d',
-    color: '#00ff9d', padding: '12px', fontFamily: 'monospace', width: '260px',
-    borderRadius: '2px', boxShadow: '0 0 30px rgba(0, 255, 157, 0.3)',
-    backdropFilter: 'blur(10px)', fontSize: '11px'
+    position: 'fixed', bottom: '24px', right: '24px', zIndex: '2147483647',
+    backgroundColor: '#0a0a0a', border: '1px solid #262626',
+    color: '#ffffff', padding: '16px', fontFamily: 'system-ui, -apple-system, sans-serif', width: '280px',
+    borderRadius: '12px', boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+    backdropFilter: 'blur(10px)', fontSize: '12px'
   });
   document.body.appendChild(badge);
 
   const style = document.createElement('style');
   style.textContent = `
-    #vtm-hud-header { display: flex; justify-content: space-between; border-bottom: 1px solid #00ff9d33; padding-bottom: 5px; margin-bottom: 8px; }
-    #vtm-hud-project-name { color: #ffcc00; font-size: 10px; margin-bottom: 10px; }
-    .vtm-hud-task { margin-bottom: 5px; padding-left: 8px; border-left: 2px solid #00ff9d; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    @keyframes vtm-ship-flash { 0% { background: rgba(0,255,157,0); } 50% { background: rgba(0,255,157,0.3); } 100% { background: rgba(0,255,157,0); } }
+    #vtm-hud-header { display: flex; justify-content: space-between; border-bottom: 1px solid #262626; padding-bottom: 8px; margin-bottom: 10px; }
+    #vtm-hud-title { color: #10B981; font-weight: 800; font-size: 11px; letter-spacing: 0.05em; }
+    #vtm-hud-timer { font-family: monospace; color: #848484; font-size: 11px; }
+    #vtm-hud-project-name { color: #ffcc00; font-size: 11px; margin-bottom: 12px; font-weight: 700; text-transform: uppercase; }
+    .vtm-hud-task { margin-bottom: 6px; padding: 6px 10px; background: rgba(255,255,255,0.03); border-radius: 6px; border-left: 3px solid #10B981; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+    @keyframes vtm-ship-flash { 0% { background: rgba(16,185,145,0); } 50% { background: rgba(16,185,145,0.2); } 100% { background: rgba(16,185,145,0); } }
     .vtm-celebration { position:fixed; top:0; left:0; width:100%; height:100%; z-index:999998; pointer-events:none; animation: vtm-ship-flash 0.8s ease-in-out; }
   `;
   document.head.appendChild(style);
@@ -77,7 +79,7 @@
 
       if (interim) {
         projectNameEl.textContent = `🎙️ ${interim}`;
-        projectNameEl.style.color = "#ffcc00";
+        projectNameEl.style.color = "#F567D7";
       }
 
       if (final) {
@@ -141,7 +143,7 @@
     const filtered = (info && info.id)
       ? tasks.filter(t => !t.done && t.projectId === info.id)
       : tasks.filter(t => !t.done).slice(0, 5);
-    container.innerHTML = filtered.map(t => `<div class="vtm-hud-task">${t.text}</div>`).join('') || '<div style="opacity:0.5">Grid Clear.</div>';
+    container.innerHTML = filtered.map(t => `<div class="vtm-hud-task">${t.text}</div>`).join('') || '<div style="opacity:0.5; font-size:10px; color:#848484">Grid Clear.</div>';
     if (info && info.name) document.getElementById('vtm-hud-project-name').textContent = `SHIP: ${info.name.toUpperCase()}`;
   };
 
