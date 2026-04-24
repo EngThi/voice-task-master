@@ -48,7 +48,7 @@ async function checkContext() {
     const tagBtn = document.querySelector('[data-tag="project"]');
     if (tagBtn) tagBtn.style.display = "none";
   } else {
-    el("headerTitle").textContent = `${VTM_I18N.projectTitle} v1.5.1`;
+    el("headerTitle").textContent = `${VTM_I18N.projectTitle} v1.5.2`;
     el("headerSubtitle").textContent = `${activeProject.name.toUpperCase()} // ${VTM_I18N.projectSubtitle.split("//")[1].trim()}`;
     el("vtm-header").classList.remove("kitchen-mode");
     const tagBtn = document.querySelector('[data-tag="project"]');
