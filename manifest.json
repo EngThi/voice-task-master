@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "VOICE-TASK-MASTER (VTM)",
-  "version": "1.5.2",
-  "description": "Voice-first task manager for high-intensity developers. Integrated Ship Mode for Flavortown.",
+  "version": "1.5.7",
+  "description": "Voice-first task manager for high-intensity developers.",
   "author": "EngThi // Hacker",
   "permissions": [
     "storage",
@@ -11,54 +11,19 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_icon": {
-      "16": "icon16.png",
-      "48": "icon48.png",
-      "128": "icon128.png"
-    }
-  },
-  "icons": {
-    "16": "icon16.png",
-    "48": "icon48.png",
-    "128": "icon128.png"
+    "default_icon": { "16": "icon16.png", "48": "icon48.png", "128": "icon128.png" }
   },
   "content_scripts": [
     {
-      "matches": [
-        "*://flavortown.hackclub.com/*"
-      ],
-      "js": [
-        "i18n.js",
-        "content.js"
-      ]
+      "matches": [ "*://flavortown.hackclub.com/*" ],
+      "js": [ "i18n.js", "content.js" ]
     }
   ],
   "commands": {
-    "_execute_action": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+Y",
-        "mac": "Command+Shift+Y"
-      }
-    },
     "activate-voice": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+V"
-      },
+      "suggested_key": { "default": "Alt+Shift+V" },
       "description": "Activate Neural Voice Uplink"
     }
   },
-  "offline_enabled": true,
-  "background": {
-    "service_worker": "background.js"
-  },
-  "web_accessible_resources": [
-    {
-      "resources": [
-        "permissions.html"
-      ],
-      "matches": [
-        "<all_urls>"
-      ]
-    }
-  ]
+  "background": { "service_worker": "background.js" }
 }

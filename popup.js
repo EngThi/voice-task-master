@@ -21,7 +21,6 @@ function applyLocale() {
   el("btnExport").textContent = VTM_I18N.btnExport;
   el("btnClearDone").textContent = VTM_I18N.btnClearDone;
   hintEl.textContent = VTM_I18N.hintSync;
-  // Salva o idioma para o background.js usar no offscreen
   chrome.storage.local.set({ vtm_voice_lang: VTM_I18N.voiceLang });
 }
 
@@ -36,6 +35,14 @@ async function saveTasks(tasks) {
 
 /* --- CONTEXT + KITCHEN MODE --- */
 async function checkContext() {
+  // Pedir para a aba ativa atualizar o contexto dela antes de lermos
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tab?.id) {
+    try {
+      await chrome.tabs.sendMessage(tab.id, { type: "GET_CONTEXT" });
+    } catch(e) { /* Tab sem content script */ }
+  }
+
   const data = await chrome.storage.local.get([CONTEXT_KEY]);
   activeProject = data[CONTEXT_KEY] || null;
 
@@ -48,7 +55,7 @@ async function checkContext() {
     const tagBtn = document.querySelector('[data-tag="project"]');
     if (tagBtn) tagBtn.style.display = "none";
   } else {
-    el("headerTitle").textContent = `${VTM_I18N.projectTitle} v1.5.2`;
+    el("headerTitle").textContent = `${VTM_I18N.projectTitle} v1.5.4`;
     el("headerSubtitle").textContent = `${activeProject.name.toUpperCase()} // ${VTM_I18N.projectSubtitle.split("//")[1].trim()}`;
     el("vtm-header").classList.remove("kitchen-mode");
     const tagBtn = document.querySelector('[data-tag="project"]');
@@ -67,21 +74,11 @@ function setHint(msg) {
   setTimeout(() => { if (hintEl.textContent === msg) hintEl.textContent = VTM_I18N.hintReady; }, 4000);
 }
 
-const GROUP_LABELS = {
-  Bugfix: "🐛 Bugfix",
-  "UI/UX": "🎨 UI/UX",
-  "Ship Log": "🚀 Ship Log",
-  Task: "📋 Task",
-};
-
-const PRIORITY_LABELS = {
-  critical: "🔴 CRITICAL",
-  backlog: "⬜ Backlog",
-};
+const GROUP_LABELS = { Bugfix: "🐛 Bugfix", "UI/UX": "🎨 UI/UX", "Ship Log": "🚀 Ship Log", Task: "📋 Task" };
+const PRIORITY_LABELS = { critical: "🔴 CRITICAL", backlog: "⬜ Backlog" };
 
 function render(tasks) {
   tasksEl.innerHTML = "";
-
   let filtered;
   if (currentFilter === "all") {
     filtered = isKitchenMode ? tasks : tasks.filter(t => t.projectId === activeProject?.id || !t.projectId);
@@ -99,15 +96,12 @@ function render(tasks) {
     wrap.className = `task ${t.done ? "done" : ""} p-${t.priority}`;
     wrap.draggable = true;
     wrap.dataset.id = t.id;
-
     wrap.addEventListener("dragstart", () => wrap.classList.add("dragging"));
     wrap.addEventListener("dragend", () => wrap.classList.remove("dragging"));
 
     const groupLabel = GROUP_LABELS[t.group] || t.group || "📋 Task";
     const priorityLabel = PRIORITY_LABELS[t.priority] || t.priority || "⬜ Backlog";
-    const displayText = (activeProject && activeProject.id)
-      ? t.text.replace(`#${activeProject.id}`, "").trim()
-      : t.text;
+    const displayText = (activeProject && activeProject.id) ? t.text.replace(`#${activeProject.id}`, "").trim() : t.text;
 
     wrap.innerHTML = `
       <input type="checkbox" ${t.done ? "checked" : ""}>
@@ -135,7 +129,6 @@ function render(tasks) {
       await saveTasks(all.filter(x => x.id !== t.id));
       render(await loadTasks());
     };
-
     tasksEl.appendChild(wrap);
   });
 }
@@ -143,10 +136,7 @@ function render(tasks) {
 /* --- MISSION CONTROL --- */
 async function celebrateShip() {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    if (!tabs[0]?.id) return;
-    chrome.tabs.sendMessage(tabs[0].id, { type: "CELEBRATE_SHIP" }, () => {
-      if (chrome.runtime.lastError) { /* tab sem content script — ok */ }
-    });
+    if (tabs[0]?.id) chrome.tabs.sendMessage(tabs[0].id, { type: "CELEBRATE_SHIP" });
   });
   const all = await loadTasks();
   const remaining = all.filter(t => !t.done);
@@ -161,10 +151,18 @@ async function generateShipLog() {
   if (done.length === 0) { setHint(VTM_I18N.hintNoTasks); return; }
 
   const groups = {};
-  done.forEach(t => { groups[t.group] = groups[t.group] || []; groups[t.group].push(t.text); });
+  done.forEach(t => { 
+    const label = GROUP_LABELS[t.group] || "📋 Task";
+    groups[label] = groups[label] || []; 
+    groups[label].push(t.text.replace(`#${t.projectId}`, "").trim()); 
+  });
 
-  let md = VTM_I18N.shipLogHeader(activeProject?.name || "VTM Session");
-  for (const g in groups) { md += `### ${g}\n- ${groups[g].join("\n- ")}\n\n`; }
+  let md = `🚀 *SHIP LOG: ${activeProject?.name || "KITCHEN"}* \n\n`;
+  for (const g in groups) { 
+    md += `*${g.toUpperCase()}*\n`;
+    md += groups[g].map(txt => `• ${txt}`).join("\n") + "\n\n"; 
+  }
+  md += `_Generated via VOICE-TASK-MASTER (VTM)_`;
 
   await navigator.clipboard.writeText(md);
   setHint(VTM_I18N.hintCopied);
@@ -180,22 +178,29 @@ function speak(txt) {
 async function addTask(text) {
   const clean = (text || "").trim();
   if (!clean) return;
-  if (clean.toLowerCase() === "ship it") { celebrateShip(); return; }
-  if (clean.toLowerCase().includes("generate log")) { generateShipLog(); return; }
+  const cmd = clean.toLowerCase();
+  
+  if (cmd === "ship it") { celebrateShip(); return; }
+  if (cmd.includes("generate log") || cmd.includes("daily menu")) { generateShipLog(); return; }
+  if (cmd === "clear kitchen" || cmd === "purge plates") {
+    const all = await loadTasks();
+    await saveTasks(all.filter(t => !t.done));
+    render(await loadTasks());
+    setHint("Kitchen Cleared! 🍳");
+    return;
+  }
 
   let group = "Task";
   if (/fix|bug/i.test(clean)) group = "Bugfix";
   else if (/ui|css|style/i.test(clean)) group = "UI/UX";
   else if (/devlog|ship/i.test(clean)) group = "Ship Log";
-
   const priority = /critical/i.test(clean) ? "critical" : "backlog";
 
   const tasks = await loadTasks();
   tasks.unshift({
     id: Math.random().toString(16).slice(2),
     text: (activeProject && activeProject.id) ? `${clean} #${activeProject.id}` : clean,
-    priority,
-    group,
+    priority, group,
     projectId: (activeProject && activeProject.id) ? activeProject.id : null,
     done: false,
     createdAt: Date.now(),
@@ -233,70 +238,35 @@ function getDragAfterElement(container, y) {
   }, { offset: Number.NEGATIVE_INFINITY }).element;
 }
 
-/* --- VOICE — popup button (roda no contexto do popup) --- */
+/* --- VOICE — popup button --- */
 let recognition = null;
 let voiceActive = false;
 
 async function toggleVoice() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) { setHint(VTM_I18N.hintNoVoice); return; }
-
-  if (voiceActive) {
-    recognition?.stop();
-    recognition = null;
-    voiceActive = false;
-    btnVoice.classList.remove("recording");
-    return;
-  }
+  if (voiceActive) { recognition?.stop(); recognition = null; voiceActive = false; btnVoice.classList.remove("recording"); return; }
 
   recognition = new SR();
   recognition.lang = VTM_I18N.voiceLang;
-  recognition.interimResults = true;   // ← mudou de false para true
+  recognition.interimResults = true;
   recognition.continuous = false;
   voiceActive = true;
   btnVoice.classList.add("recording");
   setHint("🎙️ Ouvindo...");
 
   recognition.onresult = (ev) => {
-    let interim = "";
-    let final = "";
+    let interim = ""; let final = "";
     for (let i = ev.resultIndex; i < ev.results.length; i++) {
       if (ev.results[i].isFinal) final += ev.results[i][0].transcript;
       else interim += ev.results[i][0].transcript;
     }
-    // Mostra o que está sendo captado em tempo real no hint
     if (interim) hintEl.textContent = `🎙️ ${interim}`;
-    if (final) {
-      addTask(final);
-      voiceActive = false;
-      recognition = null;
-      btnVoice.classList.remove("recording");
-    }
+    if (final) { addTask(final); voiceActive = false; recognition = null; btnVoice.classList.remove("recording"); }
   };
-
-  recognition.onerror = (ev) => {
-    setHint(`${VTM_I18N.hintVoiceError}: ${ev.error}`);
-    voiceActive = false;
-    recognition = null;
-    btnVoice.classList.remove("recording");
-  };
-
-  recognition.onend = () => {
-    if (voiceActive) {
-      voiceActive = false;
-      recognition = null;
-      btnVoice.classList.remove("recording");
-    }
-  };
-
-  try {
-    recognition.start();
-  } catch(e) {
-    setHint(`${VTM_I18N.hintVoiceError}: ${e.message}`);
-    voiceActive = false;
-    recognition = null;
-    btnVoice.classList.remove("recording");
-  }
+  recognition.onerror = (ev) => { setHint(`${VTM_I18N.hintVoiceError}: ${ev.error}`); voiceActive = false; recognition = null; btnVoice.classList.remove("recording"); };
+  recognition.onend = () => { if (voiceActive) { voiceActive = false; recognition = null; btnVoice.classList.remove("recording"); } };
+  try { recognition.start(); } catch(e) { setHint(`${VTM_I18N.hintVoiceError}: ${e.message}`); voiceActive = false; recognition = null; btnVoice.classList.remove("recording"); }
 }
 
 /* --- FILTER --- */
@@ -305,7 +275,6 @@ window.setFilter = (f) => {
   document.querySelectorAll(".tag-btn").forEach(b => b.classList.toggle("active", b.dataset.tag === f));
   loadTasks().then(render);
 };
-
 document.getElementById("filterBar").addEventListener("click", (e) => {
   const btn = e.target.closest(".tag-btn");
   if (btn) window.setFilter(btn.dataset.tag);
@@ -326,21 +295,15 @@ el("btnExport").addEventListener("click", async () => {
   await navigator.clipboard.writeText(json);
   setHint(VTM_I18N.hintExported);
 });
-
 taskText.addEventListener("keydown", (e) => { if (e.key === "Enter") addTask(taskText.value); });
-
-// Ctrl+Shift+V dentro do popup (fallback caso o popup esteja aberto)
 window.addEventListener("keydown", (e) => {
-  if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "v") toggleVoice();
+  if (e.altKey && e.shiftKey && e.key.toLowerCase() === "v") toggleVoice();
   if (e.ctrlKey && e.key.toLowerCase() === "k") { e.preventDefault(); taskText.focus(); }
 });
 
-// Atualiza lista ao vivo quando outro contexto (content.js, background) salva tasks
-chrome.storage.onChanged.addListener((changes) => {
-  if (changes[STORAGE_KEY]) {
-    render(changes[STORAGE_KEY].newValue || []);
-  }
-});
+chrome.runtime.onMessage.addListener((msg) => { if (msg.type === "GENERATE_SLACK_LOG") { generateShipLog(); } });
+chrome.storage.onChanged.addListener((changes) => { if (changes[STORAGE_KEY]) { render(changes[STORAGE_KEY].newValue || []); } });
+chrome.storage.onChanged.addListener((changes) => { if (changes[CONTEXT_KEY]) { checkContext(); } });
 
 (async function init() {
   applyLocale();
