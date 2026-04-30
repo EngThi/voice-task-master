@@ -1,30 +1,21 @@
 const STORAGE_KEY = "vtm_tasks_v1";
 const CONTEXT_KEY = "vtm_active_context";
-
+const BUBBLE_COLOR_KEY = "vtm_bubble_color";
+const THEME_KEY = "vtm_theme";
+const THEMES = {
+  neural: { accent: "#10B981", pink: "#F567D7", panel: "#161616", bg: "#0a0a0a" },
+  spice: { accent: "#ff9f1c", pink: "#F567D7", panel: "#1b1008", bg: "#0e0905" },
+  violet: { accent: "#6603fc", pink: "#00e5ff", panel: "#161020", bg: "#0b0712" },
+  ocean: { accent: "#00c2ff", pink: "#10B981", panel: "#07141c", bg: "#041018" }
+};
 const el = (id) => document.getElementById(id);
-const tasksEl = el("tasks");
-const hintEl = el("hint");
-const countEl = el("count");
-const taskText = el("taskText");
-const btnVoice = el("btnVoice");
 
-let activeProject = null;
-let currentFilter = "all";
-let isKitchenMode = false;
-
-/* --- APPLY i18n --- */
-function applyLocale() {
-  taskText.placeholder = VTM_I18N.placeholder;
-  btnVoice.textContent = VTM_I18N.btnVoice;
-  el("btnAdd").textContent = VTM_I18N.btnAdd;
-  el("btnStandup").textContent = VTM_I18N.btnStandup;
-  el("btnExport").textContent = VTM_I18N.btnExport;
-  el("btnClearDone").textContent = VTM_I18N.btnClearDone;
-  hintEl.textContent = VTM_I18N.hintSync;
-  chrome.storage.local.set({ vtm_voice_lang: VTM_I18N.voiceLang });
+function escapeHTML(value) {
+  const div = document.createElement("div");
+  div.textContent = value || "";
+  return div.innerHTML;
 }
 
-/* --- DATA LAYER --- */
 async function loadTasks() {
   const data = await chrome.storage.local.get([STORAGE_KEY]);
   return data[STORAGE_KEY] || [];
@@ -33,281 +24,144 @@ async function saveTasks(tasks) {
   await chrome.storage.local.set({ [STORAGE_KEY]: tasks });
 }
 
-/* --- CONTEXT + KITCHEN MODE --- */
+function render(tasks) {
+  const list = el("tasks");
+  if (!list) return;
+  list.innerHTML = "";
+  tasks.forEach(t => {
+    const projectLabel = t.projectName || (t.projectId ? VTM_I18N.projectFallback(t.projectId) : VTM_I18N.globalOrders);
+    const wrap = document.createElement("div");
+    wrap.className = `task ${t.done ? "done" : ""}`;
+    wrap.innerHTML = `
+      <div class="main">
+        <div class="text">${escapeHTML(t.text)}</div>
+        <div class="meta"><span class="project-tag">${escapeHTML(projectLabel)}</span></div>
+      </div>
+    `;
+    list.appendChild(wrap);
+  });
+  const active = tasks.filter(t => !t.done).length;
+  el("count").textContent = VTM_I18N.activeMissions(active);
+}
+
+function shouldConfirmProjectContext(context) {
+  return context?.projectId && context?.projectName && context.source !== "kitchen";
+}
+
+function applyLocale() {
+  el("taskText").placeholder = VTM_I18N.placeholder;
+  el("btnVoice").textContent = VTM_I18N.btnVoice;
+  el("btnAdd").textContent = VTM_I18N.btnAdd;
+  el("btnStandup").textContent = VTM_I18N.btnStandup;
+  el("btnExport").textContent = VTM_I18N.btnExport;
+  el("btnClearDone").textContent = VTM_I18N.btnClearDone;
+}
+
+async function applyTheme() {
+  const data = await chrome.storage.local.get({ [THEME_KEY]: "violet", [BUBBLE_COLOR_KEY]: "#6603fc" });
+  const theme = THEMES[data[THEME_KEY]] || THEMES.violet;
+  document.documentElement.style.setProperty("--accent", data[BUBBLE_COLOR_KEY] || theme.accent);
+  document.documentElement.style.setProperty("--pink", theme.pink);
+  document.documentElement.style.setProperty("--panel", theme.panel);
+  document.documentElement.style.setProperty("--bg", theme.bg);
+}
+
 async function checkContext() {
-  // Pedir para a aba ativa atualizar o contexto dela antes de lermos
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (tab?.id) {
     try {
       await chrome.tabs.sendMessage(tab.id, { type: "GET_CONTEXT" });
-    } catch(e) { /* Tab sem content script */ }
+    } catch (_) {}
   }
 
   const data = await chrome.storage.local.get([CONTEXT_KEY]);
-  activeProject = data[CONTEXT_KEY] || null;
-
-  isKitchenMode = !activeProject || !activeProject.id;
-
-  if (isKitchenMode) {
+  const activeProject = data[CONTEXT_KEY] || null;
+  if (!activeProject || !activeProject.id) {
     el("headerTitle").textContent = VTM_I18N.kitchenTitle;
-    el("headerSubtitle").textContent = VTM_I18N.kitchenSubtitle;
     el("vtm-header").classList.add("kitchen-mode");
-    const tagBtn = document.querySelector('[data-tag="project"]');
-    if (tagBtn) tagBtn.style.display = "none";
   } else {
-    el("headerTitle").textContent = `${VTM_I18N.projectTitle} v1.5.4`;
-    el("headerSubtitle").textContent = `${activeProject.name.toUpperCase()} // ${VTM_I18N.projectSubtitle.split("//")[1].trim()}`;
+    el("headerTitle").textContent = "VTM v1.6.9";
+    el("headerSubtitle").textContent = activeProject.name.toUpperCase();
     el("vtm-header").classList.remove("kitchen-mode");
-    const tagBtn = document.querySelector('[data-tag="project"]');
-    if (tagBtn) {
-      tagBtn.textContent = `#${activeProject.id.toUpperCase()}`;
-      tagBtn.style.display = "block";
-    }
-    setHint(`${VTM_I18N.hintUplink}: ${activeProject.name.substring(0, 18)}`);
   }
 }
 
-/* --- UI ENGINE --- */
-function setHint(msg) {
-  hintEl.textContent = msg || "";
-  hintEl.style.color = isKitchenMode ? "#ff9f1c" : (activeProject ? "#ffcc00" : "#10B981");
-  setTimeout(() => { if (hintEl.textContent === msg) hintEl.textContent = VTM_I18N.hintReady; }, 4000);
-}
+let voiceActivationInFlight = false;
 
-const GROUP_LABELS = { Bugfix: "🐛 Bugfix", "UI/UX": "🎨 UI/UX", "Ship Log": "🚀 Ship Log", Task: "📋 Task" };
-const PRIORITY_LABELS = { critical: "🔴 CRITICAL", backlog: "⬜ Backlog" };
+async function activateVoiceAndClose() {
+  if (voiceActivationInFlight) return;
+  voiceActivationInFlight = true;
 
-function render(tasks) {
-  tasksEl.innerHTML = "";
-  let filtered;
-  if (currentFilter === "all") {
-    filtered = isKitchenMode ? tasks : tasks.filter(t => t.projectId === activeProject?.id || !t.projectId);
-  } else if (currentFilter === "project") {
-    filtered = tasks.filter(t => t.projectId === activeProject?.id);
-  } else {
-    filtered = tasks.filter(t => t.text.toLowerCase().includes(`#${currentFilter}`));
-  }
-
-  const active = filtered.filter(t => !t.done).length;
-  countEl.textContent = VTM_I18N.activeMissions(active);
-
-  filtered.forEach(t => {
-    const wrap = document.createElement("div");
-    wrap.className = `task ${t.done ? "done" : ""} p-${t.priority}`;
-    wrap.draggable = true;
-    wrap.dataset.id = t.id;
-    wrap.addEventListener("dragstart", () => wrap.classList.add("dragging"));
-    wrap.addEventListener("dragend", () => wrap.classList.remove("dragging"));
-
-    const groupLabel = GROUP_LABELS[t.group] || t.group || "📋 Task";
-    const priorityLabel = PRIORITY_LABELS[t.priority] || t.priority || "⬜ Backlog";
-    const displayText = (activeProject && activeProject.id) ? t.text.replace(`#${activeProject.id}`, "").trim() : t.text;
-
-    wrap.innerHTML = `
-      <input type="checkbox" ${t.done ? "checked" : ""}>
-      <div class="main">
-        <div class="text">${displayText}</div>
-        <div class="meta">
-          <span class="group-tag">${groupLabel}</span>
-          <span class="priority-tag">${priorityLabel}</span>
-          <span class="project-tag">${t.projectId ? "#" + t.projectId : "Global"}</span>
-        </div>
-      </div>
-      <button class="del">&times;</button>
-    `;
-
-    wrap.querySelector("input").onchange = async (e) => {
-      const all = await loadTasks();
-      const idx = all.findIndex(x => x.id === t.id);
-      if (idx !== -1) all[idx].done = e.target.checked;
-      await saveTasks(all);
-      render(all);
-    };
-
-    wrap.querySelector(".del").onclick = async () => {
-      const all = await loadTasks();
-      await saveTasks(all.filter(x => x.id !== t.id));
-      render(await loadTasks());
-    };
-    tasksEl.appendChild(wrap);
-  });
-}
-
-/* --- MISSION CONTROL --- */
-async function celebrateShip() {
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    if (tabs[0]?.id) chrome.tabs.sendMessage(tabs[0].id, { type: "CELEBRATE_SHIP" });
-  });
-  const all = await loadTasks();
-  const remaining = all.filter(t => !t.done);
-  await saveTasks(remaining);
-  render(remaining);
-  speak(VTM_I18N.hintShip);
-}
-
-async function generateShipLog() {
-  const all = await loadTasks();
-  const done = all.filter(t => t.done && (!activeProject || !activeProject.id || t.projectId === activeProject.id));
-  if (done.length === 0) { setHint(VTM_I18N.hintNoTasks); return; }
-
-  const groups = {};
-  done.forEach(t => { 
-    const label = GROUP_LABELS[t.group] || "📋 Task";
-    groups[label] = groups[label] || []; 
-    groups[label].push(t.text.replace(`#${t.projectId}`, "").trim()); 
-  });
-
-  let md = `🚀 *SHIP LOG: ${activeProject?.name || "KITCHEN"}* \n\n`;
-  for (const g in groups) { 
-    md += `*${g.toUpperCase()}*\n`;
-    md += groups[g].map(txt => `• ${txt}`).join("\n") + "\n\n"; 
-  }
-  md += `_Generated via VOICE-TASK-MASTER (VTM)_`;
-
-  await navigator.clipboard.writeText(md);
-  setHint(VTM_I18N.hintCopied);
-}
-
-function speak(txt) {
-  const u = new SpeechSynthesisUtterance(txt);
-  u.lang = VTM_I18N.voiceLang;
-  window.speechSynthesis.speak(u);
-}
-
-/* --- CORE ACTIONS --- */
-async function addTask(text) {
-  const clean = (text || "").trim();
-  if (!clean) return;
-  const cmd = clean.toLowerCase();
-  
-  if (cmd === "ship it") { celebrateShip(); return; }
-  if (cmd.includes("generate log") || cmd.includes("daily menu")) { generateShipLog(); return; }
-  if (cmd === "clear kitchen" || cmd === "purge plates") {
-    const all = await loadTasks();
-    await saveTasks(all.filter(t => !t.done));
-    render(await loadTasks());
-    setHint("Kitchen Cleared! 🍳");
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tab?.id) {
+    chrome.tabs.sendMessage(tab.id, { type: "ACTIVATE_VOICE" }, () => {
+      window.close();
+    });
     return;
   }
 
-  let group = "Task";
-  if (/fix|bug/i.test(clean)) group = "Bugfix";
-  else if (/ui|css|style/i.test(clean)) group = "UI/UX";
-  else if (/devlog|ship/i.test(clean)) group = "Ship Log";
-  const priority = /critical/i.test(clean) ? "critical" : "backlog";
+  window.close();
+}
 
-  const tasks = await loadTasks();
+async function quickSaveAndClose() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tab?.id) {
+    chrome.tabs.sendMessage(tab.id, { type: "QUICK_SAVE_CONTEXT" }, () => {
+      window.close();
+    });
+    return;
+  }
+  window.close();
+}
+
+el("btnVoice").addEventListener("click", activateVoiceAndClose);
+el("btnAdd").addEventListener("click", async () => {
+  const text = el("taskText").value;
+  if (!text) return;
+  await checkContext();
+  const data = await chrome.storage.local.get([STORAGE_KEY, CONTEXT_KEY]);
+  const tasks = data[STORAGE_KEY] || [];
+  const context = data[CONTEXT_KEY] || {};
+  const useProject = !shouldConfirmProjectContext(context) || confirm(VTM_I18N.confirmSaveProject(context.projectName || context.name));
   tasks.unshift({
     id: Math.random().toString(16).slice(2),
-    text: (activeProject && activeProject.id) ? `${clean} #${activeProject.id}` : clean,
-    priority, group,
-    projectId: (activeProject && activeProject.id) ? activeProject.id : null,
+    text,
     done: false,
-    createdAt: Date.now(),
+    projectId: useProject ? (context.projectId || context.id || null) : null,
+    projectName: useProject ? (context.projectName || context.name || null) : null,
+    projectUrl: useProject ? (context.url || null) : null,
+    userName: useProject ? (context.userName || null) : null,
+    userUrl: useProject ? (context.userUrl || null) : null,
+    contextSource: useProject ? (context.source || null) : "global",
+    createdAt: Date.now()
   });
   await saveTasks(tasks);
-  render(tasks);
-  taskText.value = "";
-  taskText.classList.add("flash");
-  setTimeout(() => taskText.classList.remove("flash"), 400);
-}
-
-/* --- DRAG & DROP --- */
-tasksEl.addEventListener("dragover", (e) => {
-  e.preventDefault();
-  const dragging = document.querySelector(".dragging");
-  const afterElement = getDragAfterElement(tasksEl, e.clientY);
-  if (afterElement == null) tasksEl.appendChild(dragging);
-  else tasksEl.insertBefore(dragging, afterElement);
+  el("taskText").value = "";
 });
 
-tasksEl.addEventListener("drop", async () => {
-  const newOrderIds = [...document.querySelectorAll(".task")].map(t => t.dataset.id);
-  const all = await loadTasks();
-  const reordered = newOrderIds.map(id => all.find(t => t.id === id)).filter(Boolean);
-  await saveTasks(reordered);
-});
-
-function getDragAfterElement(container, y) {
-  const elements = [...container.querySelectorAll(".task:not(.dragging)")];
-  return elements.reduce((closest, child) => {
-    const box = child.getBoundingClientRect();
-    const offset = y - box.top - box.height / 2;
-    if (offset < 0 && offset > closest.offset) return { offset, element: child };
-    return closest;
-  }, { offset: Number.NEGATIVE_INFINITY }).element;
-}
-
-/* --- VOICE — popup button --- */
-let recognition = null;
-let voiceActive = false;
-
-async function toggleVoice() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) { setHint(VTM_I18N.hintNoVoice); return; }
-  if (voiceActive) { recognition?.stop(); recognition = null; voiceActive = false; btnVoice.classList.remove("recording"); return; }
-
-  recognition = new SR();
-  recognition.lang = VTM_I18N.voiceLang;
-  recognition.interimResults = true;
-  recognition.continuous = false;
-  voiceActive = true;
-  btnVoice.classList.add("recording");
-  setHint("🎙️ Ouvindo...");
-
-  recognition.onresult = (ev) => {
-    let interim = ""; let final = "";
-    for (let i = ev.resultIndex; i < ev.results.length; i++) {
-      if (ev.results[i].isFinal) final += ev.results[i][0].transcript;
-      else interim += ev.results[i][0].transcript;
-    }
-    if (interim) hintEl.textContent = `🎙️ ${interim}`;
-    if (final) { addTask(final); voiceActive = false; recognition = null; btnVoice.classList.remove("recording"); }
-  };
-  recognition.onerror = (ev) => { setHint(`${VTM_I18N.hintVoiceError}: ${ev.error}`); voiceActive = false; recognition = null; btnVoice.classList.remove("recording"); };
-  recognition.onend = () => { if (voiceActive) { voiceActive = false; recognition = null; btnVoice.classList.remove("recording"); } };
-  try { recognition.start(); } catch(e) { setHint(`${VTM_I18N.hintVoiceError}: ${e.message}`); voiceActive = false; recognition = null; btnVoice.classList.remove("recording"); }
-}
-
-/* --- FILTER --- */
-window.setFilter = (f) => {
-  currentFilter = f;
-  document.querySelectorAll(".tag-btn").forEach(b => b.classList.toggle("active", b.dataset.tag === f));
-  loadTasks().then(render);
-};
-document.getElementById("filterBar").addEventListener("click", (e) => {
-  const btn = e.target.closest(".tag-btn");
-  if (btn) window.setFilter(btn.dataset.tag);
-});
-
-/* --- WIRING --- */
-el("btnAdd").addEventListener("click", () => addTask(taskText.value));
-el("btnVoice").addEventListener("click", toggleVoice);
-el("btnClearDone").addEventListener("click", async () => {
-  const all = await loadTasks();
-  await saveTasks(all.filter(t => !t.done));
-  render(await loadTasks());
-});
-el("btnStandup").addEventListener("click", generateShipLog);
-el("btnExport").addEventListener("click", async () => {
-  const all = await loadTasks();
-  const json = JSON.stringify(all, null, 2);
-  await navigator.clipboard.writeText(json);
-  setHint(VTM_I18N.hintExported);
-});
-taskText.addEventListener("keydown", (e) => { if (e.key === "Enter") addTask(taskText.value); });
 window.addEventListener("keydown", (e) => {
-  if (e.altKey && e.shiftKey && e.key.toLowerCase() === "v") toggleVoice();
-  if (e.ctrlKey && e.key.toLowerCase() === "k") { e.preventDefault(); taskText.focus(); }
+  if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "v") {
+    e.preventDefault();
+    e.stopPropagation();
+    activateVoiceAndClose();
+    return;
+  }
+  if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "s") {
+    e.preventDefault();
+    e.stopPropagation();
+    quickSaveAndClose();
+    return;
+  }
+  if (e.ctrlKey && e.key.toLowerCase() === "k") { e.preventDefault(); el("taskText").focus(); }
 });
 
-chrome.runtime.onMessage.addListener((msg) => { if (msg.type === "GENERATE_SLACK_LOG") { generateShipLog(); } });
-chrome.storage.onChanged.addListener((changes) => { if (changes[STORAGE_KEY]) { render(changes[STORAGE_KEY].newValue || []); } });
-chrome.storage.onChanged.addListener((changes) => { if (changes[CONTEXT_KEY]) { checkContext(); } });
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes[STORAGE_KEY]) render(changes[STORAGE_KEY].newValue || []);
+});
 
-(async function init() {
+(async () => {
   applyLocale();
+  await applyTheme();
   await checkContext();
   render(await loadTasks());
-  taskText.focus();
 })();

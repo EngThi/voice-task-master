@@ -1,13 +1,14 @@
 {
   "manifest_version": 3,
   "name": "VOICE-TASK-MASTER (VTM)",
-  "version": "1.5.7",
+  "version": "1.6.9",
   "description": "Voice-first task manager for high-intensity developers.",
   "author": "EngThi // Hacker",
   "permissions": [
     "storage",
     "activeTab",
-    "tabs"
+    "tabs",
+    "offscreen"
   ],
   "action": {
     "default_popup": "popup.html",
@@ -20,9 +21,16 @@
     }
   ],
   "commands": {
+    "_execute_action": {
+      "suggested_key": { "default": "Ctrl+Shift+Y" }
+    },
     "activate-voice": {
-      "suggested_key": { "default": "Alt+Shift+V" },
-      "description": "Activate Neural Voice Uplink"
+      "suggested_key": { "default": "Ctrl+Shift+V" },
+      "description": "Start voice capture"
+    },
+    "quick-save-context": {
+      "suggested_key": { "default": "Ctrl+Shift+S" },
+      "description": "Save current project context without confirmation"
     }
   },
   "background": { "service_worker": "background.js" }
