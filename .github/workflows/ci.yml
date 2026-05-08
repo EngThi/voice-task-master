@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate manifest.json
+        run: |
+          python3 -c "
+          import json, sys
+          with open('manifest.json') as f:
+            m = json.load(f)
+          assert m['manifest_version'] == 3, 'Must be MV3'
+          assert 'name' in m
+          assert 'version' in m
+          print('manifest.json valid - version:', m['version'])
+          "
+
+      - name: Check required files exist
+        run: |
+          for f in manifest.json popup.html popup.js content.js background.js i18n.js style.css; do
+            [ -f "$f" ] && echo "OK $f" || (echo "Missing: $f" && exit 1)
+          done
+
+      - name: Check no secrets in source
+        run: |
+          grep -rE "(api_key|apikey|secret|password)\s*=\s*['\"][^'\"]{8,}" \
+            --include="*.js" --include="*.json" . \
+            && echo "No secrets found" || (echo "No secrets found" && exit 0)

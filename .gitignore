@@ -2,3 +2,8 @@ TESTES
 simulation.log
 push.log
 .secrets
+*.pem
+dist/*.zip
+dist/*.crx
+devlogs/
+assets/image*.png

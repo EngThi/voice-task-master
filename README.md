@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="vtm_banner.svg" alt="Voice Task Master" width="600" />
+  <img src="assets/vtm_banner.svg" alt="Voice Task Master" width="600" />
 
   <h1>VOICE-TASK-MASTER (VTM)</h1>
   <p><strong>v1.6.9 — Voice task capture for Flavortown.</strong></p>
@@ -85,6 +85,22 @@ icon48.png
 icon128.png
 ```
 
+Local build outputs belong in `dist/`. Do not use the `.crx` as the primary review install path; keep it only as an optional packaged artifact.
+
+## Repository Layout
+
+```text
+.
+|-- manifest.json          # Chrome extension manifest
+|-- popup.*                # Extension popup UI
+|-- content.js             # Flavortown page integration
+|-- background.js          # MV3 service worker
+|-- i18n.js                # Runtime translations
+|-- assets/                # README banner assets
+|-- dist/                  # Local build artifacts, ignored by git
+`-- .github/workflows/     # CI checks
+```
+
 ## Development
 
 No build step is required.
@@ -101,7 +117,8 @@ node --check i18n.js
 To create the zip:
 
 ```bash
-python3 -c "import zipfile; files=['manifest.json','popup.html','popup.js','style.css','i18n.js','content.js','background.js','icon16.png','icon48.png','icon128.png']; z=zipfile.ZipFile('vtm-extension-code.zip','w',zipfile.ZIP_DEFLATED); [z.write(f,f) for f in files]; z.close()"
+mkdir -p dist
+python3 -c "import zipfile; files=['manifest.json','popup.html','popup.js','style.css','i18n.js','content.js','background.js','icon16.png','icon48.png','icon128.png']; z=zipfile.ZipFile('dist/vtm-extension-code.zip','w',zipfile.ZIP_DEFLATED); [z.write(f,f) for f in files]; z.close()"
 ```
 
 ## Project
