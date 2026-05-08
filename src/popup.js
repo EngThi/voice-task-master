@@ -24,20 +24,72 @@ async function saveTasks(tasks) {
   await chrome.storage.local.set({ [STORAGE_KEY]: tasks });
 }
 
+function classifyTask(text) {
+  const value = (text || "").toLowerCase();
+  if (/\b(critical|urgent|blocker|broken|crash|fail|error)\b/.test(value)) {
+    return { priority: "critical", group: "Bugfix" };
+  }
+  if (/\b(ship|shipped|launch|deploy|release|demo)\b/.test(value)) {
+    return { priority: "ship", group: "Ship" };
+  }
+  if (/\b(ui|ux|css|style|design|layout|button|color|mobile)\b/.test(value)) {
+    return { priority: "ui", group: "UI/UX" };
+  }
+  if (/\b(fix|bug|issue|regression)\b/.test(value)) {
+    return { priority: "bugfix", group: "Bugfix" };
+  }
+  return { priority: "backlog", group: "Task" };
+}
+
+function groupLabel(group) {
+  const labels = {
+    Bugfix: "Bugfix",
+    Ship: "Ship",
+    "UI/UX": "UI/UX",
+    Task: "Task"
+  };
+  return labels[group] || group || "Task";
+}
+
 function render(tasks) {
   const list = el("tasks");
   if (!list) return;
   list.innerHTML = "";
   tasks.forEach(t => {
     const projectLabel = t.projectName || (t.projectId ? VTM_I18N.projectFallback(t.projectId) : VTM_I18N.globalOrders);
+    const priority = t.priority || classifyTask(t.text).priority;
+    const group = t.group || classifyTask(t.text).group;
     const wrap = document.createElement("div");
-    wrap.className = `task ${t.done ? "done" : ""}`;
+    wrap.className = `task p-${priority} ${t.done ? "done" : ""}`;
     wrap.innerHTML = `
+      <label class="task-check" title="${escapeHTML(t.done ? VTM_I18N.canceled : VTM_I18N.orderPlaced)}">
+        <input type="checkbox" ${t.done ? "checked" : ""} aria-label="Mark task complete">
+        <span></span>
+      </label>
       <div class="main">
         <div class="text">${escapeHTML(t.text)}</div>
-        <div class="meta"><span class="project-tag">${escapeHTML(projectLabel)}</span></div>
+        <div class="meta">
+          <span class="group-tag">${escapeHTML(groupLabel(group))}</span>
+          <span class="priority-tag">${escapeHTML(priority)}</span>
+          <span class="project-tag">${escapeHTML(projectLabel)}</span>
+        </div>
       </div>
+      <button class="del" type="button" aria-label="Delete task" title="Delete task">&times;</button>
     `;
+    wrap.querySelector("input").addEventListener("change", async (event) => {
+      const all = await loadTasks();
+      const task = all.find(item => item.id === t.id);
+      if (!task) return;
+      task.done = event.target.checked;
+      await saveTasks(all);
+      render(all);
+    });
+    wrap.querySelector(".del").addEventListener("click", async () => {
+      const all = await loadTasks();
+      const next = all.filter(item => item.id !== t.id);
+      await saveTasks(next);
+      render(next);
+    });
     list.appendChild(wrap);
   });
   const active = tasks.filter(t => !t.done).length;
@@ -114,19 +166,21 @@ async function quickSaveAndClose() {
   window.close();
 }
 
-el("btnVoice").addEventListener("click", activateVoiceAndClose);
-el("btnAdd").addEventListener("click", async () => {
+async function addTextTask() {
   const text = el("taskText").value;
   if (!text) return;
   await checkContext();
   const data = await chrome.storage.local.get([STORAGE_KEY, CONTEXT_KEY]);
   const tasks = data[STORAGE_KEY] || [];
   const context = data[CONTEXT_KEY] || {};
-  const useProject = !shouldConfirmProjectContext(context) || confirm(VTM_I18N.confirmSaveProject(context.projectName || context.name));
+  const useProject = !!(context.projectId || context.id);
+  const classification = classifyTask(text);
   tasks.unshift({
     id: Math.random().toString(16).slice(2),
     text,
     done: false,
+    priority: classification.priority,
+    group: classification.group,
     projectId: useProject ? (context.projectId || context.id || null) : null,
     projectName: useProject ? (context.projectName || context.name || null) : null,
     projectUrl: useProject ? (context.url || null) : null,
@@ -137,6 +191,16 @@ el("btnAdd").addEventListener("click", async () => {
   });
   await saveTasks(tasks);
   el("taskText").value = "";
+  render(tasks);
+}
+
+el("btnVoice").addEventListener("click", activateVoiceAndClose);
+el("btnAdd").addEventListener("click", addTextTask);
+el("taskText").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    addTextTask();
+  }
 });
 
 window.addEventListener("keydown", (e) => {

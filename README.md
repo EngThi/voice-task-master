@@ -1,6 +1,4 @@
 <div align="center">
-  <img src="assets/vtm_banner.svg" alt="Voice Task Master" width="600" />
-
   <h1>VOICE-TASK-MASTER (VTM)</h1>
   <p><strong>v1.6.9 — Voice task capture for Flavortown.</strong></p>
 
@@ -74,15 +72,21 @@ The ZIP release package includes only runtime extension files:
 
 ```text
 manifest.json
-popup.html
-popup.js
-style.css
-i18n.js
-content.js
-background.js
-icon16.png
-icon48.png
-icon128.png
+src/popup.html
+src/popup.js
+src/style.css
+src/i18n.js
+src/content.js
+src/background.js
+src/offscreen.html
+src/offscreen.js
+src/options.html
+src/options.js
+src/permissions.html
+src/permissions.js
+icons/icon16.png
+icons/icon48.png
+icons/icon128.png
 ```
 
 Local build outputs belong in `dist/`. Do not use the `.crx` as the primary review install path; keep it only as an optional packaged artifact.
@@ -92,13 +96,10 @@ Local build outputs belong in `dist/`. Do not use the `.crx` as the primary revi
 ```text
 .
 |-- manifest.json          # Chrome extension manifest
-|-- popup.*                # Extension popup UI
-|-- content.js             # Flavortown page integration
-|-- background.js          # MV3 service worker
-|-- i18n.js                # Runtime translations
-|-- assets/                # README banner assets
+|-- src/                   # HTML, CSS, and JavaScript source
+|-- icons/                 # Extension icons
 |-- dist/                  # Local build artifacts, ignored by git
-`-- .github/workflows/     # CI checks
+`-- LICENSE
 ```
 
 ## Development
@@ -108,17 +109,17 @@ No build step is required.
 ```bash
 git clone https://github.com/EngThi/voice-task-master
 cd voice-task-master
-node --check content.js
-node --check popup.js
-node --check background.js
-node --check i18n.js
+node --check src/content.js
+node --check src/popup.js
+node --check src/background.js
+node --check src/i18n.js
 ```
 
 To create the zip:
 
 ```bash
 mkdir -p dist
-python3 -c "import zipfile; files=['manifest.json','popup.html','popup.js','style.css','i18n.js','content.js','background.js','icon16.png','icon48.png','icon128.png']; z=zipfile.ZipFile('dist/vtm-extension-code.zip','w',zipfile.ZIP_DEFLATED); [z.write(f,f) for f in files]; z.close()"
+python3 -c "import zipfile; files=['manifest.json','src/popup.html','src/popup.js','src/style.css','src/i18n.js','src/content.js','src/background.js','src/offscreen.html','src/offscreen.js','src/options.html','src/options.js','src/permissions.html','src/permissions.js','icons/icon16.png','icons/icon48.png','icons/icon128.png']; z=zipfile.ZipFile('dist/vtm-extension-code.zip','w',zipfile.ZIP_DEFLATED); [z.write(f,f) for f in files]; z.close()"
 ```
 
 ## Project

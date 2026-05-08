@@ -88,6 +88,8 @@ header.kitchen-mode .title {
 /* Priority Indicators */
 .task.p-critical { border-left: 4px solid var(--danger); }
 .task.p-ship { border-left: 4px solid var(--gold); }
+.task.p-ui { border-left: 4px solid var(--pink); }
+.task.p-bugfix { border-left: 4px solid #ff6b6b; }
 .task.p-backlog { border-left: 4px solid var(--accent); }
 
 /* Drag & Drop */
@@ -197,10 +199,78 @@ header.kitchen-mode .title {
 .task .text { font-size: 13px; font-weight: 500; line-height: 1.4; }
 .task .meta { font-size: 10px; color: var(--muted); margin-top: 6px; display: flex; gap: 8px; align-items: center; font-weight: 600; text-transform: uppercase; }
 
-.group-tag { color: var(--pink); }
-.priority-tag { padding: 2px 6px; background: rgba(255, 255, 255, 0.05); border-radius: 4px; }
+.task-check {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  margin-top: 1px;
+  cursor: pointer;
+  position: relative;
+}
 
-.task .del { font-size: 18px; color: var(--muted); cursor: pointer; line-height: 1; }
+.task-check input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  cursor: pointer;
+}
+
+.task-check span {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  transition: all 0.16s ease;
+}
+
+.task-check input:checked + span {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.28);
+}
+
+.task-check input:checked + span::after {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 3px;
+  width: 6px;
+  height: 12px;
+  border: solid #000;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.group-tag { color: var(--pink); }
+.priority-tag {
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  color: var(--text);
+}
+
+.task.p-critical .priority-tag { color: var(--danger); }
+.task.p-ship .priority-tag { color: var(--gold); }
+.task.p-ui .priority-tag { color: var(--pink); }
+.task.p-bugfix .priority-tag { color: #ff6b6b; }
+
+.task .del {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 18px;
+  color: var(--muted);
+  cursor: pointer;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
 .task .del:hover { color: var(--danger); }
 
 .task.done { opacity: 0.5; filter: grayscale(0.5); }
