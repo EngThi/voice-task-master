@@ -10,6 +10,9 @@
   ![i18n](https://img.shields.io/badge/i18n-EN%20%7C%20PT--BR%20%7C%20ES%20%7C%20FR%20%7C%20JA%20%7C%20ZH-10B981?style=flat-square)
   ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
   ![Flavortown](https://img.shields.io/badge/Hack%20Club-Flavortown-ec3750?style=flat-square)
+
+  [![Latest release](https://img.shields.io/badge/download-latest%20release-111827?style=flat-square&logo=github)](https://github.com/EngThi/voice-task-master/releases/latest)
+  [![Install ZIP](https://img.shields.io/badge/install-ZIP%20source-10B981?style=flat-square&logo=googlechrome&logoColor=white)](https://github.com/EngThi/voice-task-master/releases/latest/download/vtm-extension-code.zip)
 </div>
 
 ## Overview
@@ -17,6 +20,19 @@
 VOICE-TASK-MASTER is a Chrome extension for saving tasks while browsing Flavortown. It can capture notes by voice, attach them to the current project, and keep a small task panel available on the page.
 
 The extension stores tasks locally in the browser. When a Flavortown API key is available in the page settings, VTM also registers extension usage with Flavortown using the official extension header.
+
+## Reviewer Install
+
+Use the ZIP/source install for judging and demos:
+
+1. Download [`vtm-extension-code.zip`](https://github.com/EngThi/voice-task-master/releases/latest/download/vtm-extension-code.zip) from the latest release.
+2. Extract the zip.
+3. Open `chrome://extensions`.
+4. Enable **Developer mode**.
+5. Click **Load unpacked**.
+6. Select the extracted extension folder.
+
+Chrome may block direct `.crx` installs with `CRX_REQUIRED_PROOF_MISSING` when the extension is not distributed through the Chrome Web Store. The `.crx` artifact is included only as a packaged build option; the recommended install path is the ZIP above.
 
 ## Features
 
@@ -42,17 +58,19 @@ The extension stores tasks locally in the browser. When a Flavortown API key is 
 
 ## Install
 
-1. Download `vtm-extension-code.zip` from the release or build output.
+1. Download [`vtm-extension-code.zip`](https://github.com/EngThi/voice-task-master/releases/latest/download/vtm-extension-code.zip) from the latest release.
 2. Extract the zip.
 3. Open `chrome://extensions`.
 4. Enable **Developer mode**.
 5. Click **Load unpacked** and select the extracted folder.
 
-For a packaged install, use `vtm-extension-code.crx`. Keep `vtm-extension-code.pem` private if you need future CRX builds to keep the same extension ID.
+Latest release page: <https://github.com/EngThi/voice-task-master/releases/latest>
+
+Avoid using the `.crx` file as the primary demo download. Chrome can reject sideloaded CRX files with `CRX_REQUIRED_PROOF_MISSING`; loading the extracted ZIP folder is the reliable review path.
 
 ## Build Artifacts
 
-The release package includes only runtime extension files:
+The ZIP release package includes only runtime extension files:
 
 ```text
 manifest.json
