@@ -166,6 +166,87 @@ async function quickSaveAndClose() {
   window.close();
 }
 
+function setHint(message) {
+  const hint = el("hint");
+  if (hint) hint.textContent = message;
+}
+
+function taskProjectLabel(task) {
+  return task.projectName || (task.projectId ? VTM_I18N.projectFallback(task.projectId) : VTM_I18N.globalOrders);
+}
+
+function buildExportPayload(tasks, context) {
+  return {
+    app: "VOICE-TASK-MASTER",
+    version: "1.6.9",
+    exportedAt: new Date().toISOString(),
+    activeContext: context || null,
+    tasks
+  };
+}
+
+function downloadJSON(filename, data) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function exportData() {
+  const data = await chrome.storage.local.get([STORAGE_KEY, CONTEXT_KEY]);
+  const tasks = data[STORAGE_KEY] || [];
+  const payload = buildExportPayload(tasks, data[CONTEXT_KEY] || null);
+  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+  downloadJSON(`voice-task-master-${stamp}.json`, payload);
+  setHint(VTM_I18N.hintExported);
+}
+
+function buildShipLog(tasks) {
+  const today = new Date().toLocaleDateString();
+  const done = tasks.filter(task => task.done);
+  const active = tasks.filter(task => !task.done);
+  const lines = [VTM_I18N.shipLogHeader(today).trim(), ""];
+
+  if (done.length) {
+    lines.push("## Finished");
+    done.forEach(task => lines.push(`- [x] ${task.text} (${taskProjectLabel(task)})`));
+    lines.push("");
+  }
+
+  if (active.length) {
+    lines.push("## Still cooking");
+    active.forEach(task => lines.push(`- [ ] ${task.text} (${taskProjectLabel(task)})`));
+    lines.push("");
+  }
+
+  if (!tasks.length) lines.push(VTM_I18N.hintNoTasks);
+  return lines.join("\n").trim() + "\n";
+}
+
+async function copyStandup() {
+  const tasks = await loadTasks();
+  const log = buildShipLog(tasks);
+  await navigator.clipboard.writeText(log);
+  setHint(VTM_I18N.hintCopied);
+}
+
+async function clearDone() {
+  const tasks = await loadTasks();
+  const next = tasks.filter(task => !task.done);
+  if (next.length === tasks.length) {
+    setHint(VTM_I18N.hintNoTasks);
+    return;
+  }
+  await saveTasks(next);
+  render(next);
+  setHint(VTM_I18N.gridClear);
+}
+
 async function addTextTask() {
   const text = el("taskText").value;
   if (!text) return;
@@ -192,10 +273,14 @@ async function addTextTask() {
   await saveTasks(tasks);
   el("taskText").value = "";
   render(tasks);
+  setHint(VTM_I18N.hintShip);
 }
 
 el("btnVoice").addEventListener("click", activateVoiceAndClose);
 el("btnAdd").addEventListener("click", addTextTask);
+el("btnExport").addEventListener("click", exportData);
+el("btnStandup").addEventListener("click", copyStandup);
+el("btnClearDone").addEventListener("click", clearDone);
 el("taskText").addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
     e.preventDefault();
